@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+body {
+  margin: 0;
+  font-family: "Poppins", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.primary_bg{
+  background-color: rgba(24, 24, 80, 0.9);
+}
+
+.main_element_container{
+  padding: 3rem 5rem;
+  overflow: auto;
+  height: 100vh;
+  padding-bottom: 8rem;
+}
+.mt_22{
+  margin-top: 62px;
+}
+.nav_wrap{
+  background-color: #f1f5fa;
+}
+.default_color{
+  color: #cbd5e1
+}
+.doc_default_color{
+  /* color: rgb(14 233 212); */
+  /* color: #e4cd99; #c4c0c0 */
+  color: #cda54b;
+}
+.query_icon_color{
+  color: #6c6cbc;
+}
+.block_element{
+  width: 3.5px;
+  height: 3.5px;
+  background-color: #828288;
+}
+.pagination_element a{
+  width: 2.5rem;
+  height: 2.5rem;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

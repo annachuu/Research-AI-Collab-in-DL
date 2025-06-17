@@ -1,0 +1,152 @@
+.listing_container{
+    padding: 3rem 12rem;
+    overflow: auto;
+    height: 100vh;
+    padding-bottom: 18rem;
+}
+.listing_container::-webkit-scrollbar {
+    width: 8px;
+}
+  
+.listing_container::-webkit-scrollbar-track {
+    box-shadow: inset 0 0 5px transparent; 
+    border-radius: 10px;
+}
+   
+.listing_container::-webkit-scrollbar-thumb {
+    background: #cbd5e1; 
+    border-radius: 12px;
+}
+.book_cover{
+    width: 5rem;
+    height: 6.5rem;
+    background-image: url(../../../src/assets/default_thmbnail1.png);
+    background-repeat: no-repeat; 
+    background-size: contain;
+    background-position: center;
+}
+.contenttype_wrap{
+    /* background-color: #5280F5; */
+    background-color: #5c8dc5;
+    background-color:#edb60c;
+    margin: auto;
+    padding: 0.25rem 0.35rem;
+}
+.block{
+    width: 3.5px;
+    height: 3.5px;
+    background-color: #828288;
+}
+.cmb_4{
+    margin-bottom: 4rem;;
+}
+.abstract_txt{
+    color: #4A5568;
+}
+
+.default_bookmark_icon{
+    color: #cbd5e1;
+    font-size: 1.25rem;
+}
+.ril_icon{
+    font-size: 0.8rem;
+    /* color: #9db0c6; */
+    color: #cbd5e1;
+}
+.ril_border_highlight,
+.highlighted_bookmark_icon{
+    /* color: #5280F5; */
+    /* color: #566f8d */
+    /* color: #4A5568; */
+    /* color: #43549c; */
+    color: #066437;
+    background: #109756 !important;
+    border-color: #109756;
+}
+.bookmark_bg{
+    background: #f2f4f6;
+}
+
+.highlighted_ril_icon{
+    border: 2px solid #43549c;
+    /* box-shadow: inset 0 0 0 2px black; */
+}
+
+.ril_wrap{
+    padding: 0.05rem 0.1rem;
+    background: #f2f4f6;
+}
+
+.up_trigle{
+    width: 0;
+	height: 0;
+	border-left: 5px solid transparent;
+	border-right: 5px solid transparent;
+	border-bottom: 5px solid #555;
+}
+.tooltip_remove01::before,
+.tooltip_remove::before,
+.tooltip_ril::before,
+.tooltip_bookmark::before { 
+    content: "";
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 5px solid #eaeef4;
+    position: absolute;
+    top: -4px;
+    
+    right: 0;
+}
+.tooltip_remove01::before,
+.tooltip_remove::before,
+.tooltip_bookmark::before {
+    left: 60px;
+}
+.tooltip_ril::before{
+    left: 47px;
+}
+.tooltip_remove01,
+.tooltip_remove,
+.tooltip_bookmark,
+.tooltip_ril {
+    display: none;
+    opacity: 0;
+    top: 63px;
+}
+.tooltip_ril{
+    left: -10px;
+    width: 94px;
+}
+.tooltip_remove,
+.tooltip_bookmark{
+    left: -20px;
+    width: 120px;
+}
+.tooltip_remove01{
+    left: -50px;
+    width: 120px;
+}
+
+.has_tooltip:hover .tooltip_remove01,
+.has_tooltip:hover .tooltip_remove,
+.has_tooltip:hover .tooltip_ril,
+.has_tooltip:hover .tooltip_bookmark {
+    display: block;
+    opacity: 1;
+}
+
+.hiddendivs {
+    opacity: 0;
+    padding: 0 !important;
+    margin: 0 !important;
+    transition: opacity 0.35s ease-out, height 0.35s ease-out;
+    overflow: hidden;
+    pointer-events: none;    
+}
+  
+.visibledivs {
+    opacity: 1;    
+    transition: opacity 0.35s ease-in, height 0.35s ease-in;
+}

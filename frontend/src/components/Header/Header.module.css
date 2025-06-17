@@ -1,0 +1,19 @@
+.user_profile{
+    width: 2rem;
+    height: 2rem;
+}
+
+.header_container{
+    min-height: 62px;
+    padding: 0.5rem;
+    position: fixed;
+    top: 0;
+    /* background-color: rgba(43, 43, 158, 0.9);  */
+    background-color: rgba(24, 24, 80, 0.9);        
+    transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;    
+    backdrop-filter: blur(8px);    
+}
+
+.ril_bg{
+    background: #18184a;
+}
