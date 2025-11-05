@@ -66,63 +66,11 @@ function LoginComponent() {
         return `${now}_${usernameLS}_${rand}`;
     };
 
-    const initRecorder = async () => {
-        try {
-            if (!streamRef.current) {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                streamRef.current = stream;
-            }
-
-            const rec = new RecordRTC(streamRef.current, {
-                type: "video",
-                mimeType: "video/webm",
-                frameRate: 5,
-                frameInterval: 5,
-            });
-
-            recorderRef.current = rec;
-            rec.startRecording();
-            console.log("Video recording started ...........");
-
-            if (!intervalRef.current) {
-                console.log("Setting interval for sendVideo...");
-                intervalRef.current = setInterval(() => {
-                    console.log("Interval is calling sendVideo()");
-                    sendVideo();
-                }, 10000); // 60 seconds
-            }
-        } catch (err) {
-            console.error("Error initializing recorder:", err);
-        }
-    };
-
-    const sendVideo = () => {
-        const rec = recorderRef.current;
-        if (!rec) return;
-
-        rec.stopRecording(() => {
-            const blob = rec.getBlob();
-            const formData = new FormData();
-            formData.append("video", blob, generateRandomString() + ".webm");
-
-            // 1) Clear buffer & restart right away:
-            rec.clearRecordedData();
-            rec.startRecording();
-            console.log("Recorder restarted.");
-
-            // 2) Then fire-and-forget the upload
-            dispatch(saveVideoIntoFileSystem(formData))
-                .unwrap()
-                .then(() => console.log("Video chunk uploaded"))
-                .catch(err => console.error("Upload failed:", err));
-        });
-    };
-
+   
     useEffect(() => {
         if ((isSuccess || user) && !hasStartedRecording.current) {
             localStorage.setItem("loggedin-user", username);
             hasStartedRecording.current = true;
-            initRecorder();
         }
     }, [isSuccess, user]);
 

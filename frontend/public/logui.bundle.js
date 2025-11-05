@@ -3067,6 +3067,6 @@ let configurationObject = {
     }
 }
 if (window.LogUI) {
-    console.log('@@@@@@@@@@@@@@@@@   Log UI INIT   @@@@@@@@@@@@@@@');
-    LogUI.init(configurationObject);
+    // console.log('@@@@@@@@@@@@@@@@@   Log UI INIT   @@@@@@@@@@@@@@@');
+    // LogUI.init(configurationObject);
 }
