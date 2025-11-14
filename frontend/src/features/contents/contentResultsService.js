@@ -43,35 +43,6 @@ export const getBookResultLists = async (data, token) => {
             console.error("bookData.docs is not an array:", bookDocs);
             bookDocs = [];
         }
-
-        // Check if there are more than three book documents.
-        if (bookDocs.length > 3) {
-            // Retrieve one serendipity doc from the backend.
-            // Use different endpoints based on the workspace name.
-            const SelectedWS = localStorage.getItem('wpname');
-            const serendipityResponse = SelectedWS.toLowerCase().includes('ai')
-                ? await axios.get(API_URL + "serendipities/getHCISerendipity?offset=" + data.offset, config)
-                : await axios.get(API_URL + "serendipities/getAISerendipity?offset=" + data.offset, config);
-            const serendipityDoc = serendipityResponse.data;
-
-            // Allowed insertion positions: 3rd, 5th, or 7th (indices 2, 4, or 6).
-            const allowedPositions = [2, 4, 6];
-            // Compute a hash from the query string.
-            const hashVal = hashString(data.query);
-            let insertionIndex = allowedPositions[hashVal % allowedPositions.length];
-            // Ensure the chosen index does not exceed the current docs array length.
-            if (insertionIndex > bookDocs.length) {
-                insertionIndex = bookDocs.length;
-            }
-
-            // Insert the serendipity doc into the docs array immutably.
-            const updatedDocs = [
-                ...bookDocs.slice(0, insertionIndex),
-                serendipityDoc,
-                ...bookDocs.slice(insertionIndex)
-            ];
-            bookData.docs = updatedDocs;
-        }
         // If there are three or fewer books, return the original bookData without insertion.
         return bookData;
     } catch (error) {

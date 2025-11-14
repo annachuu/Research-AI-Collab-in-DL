@@ -65,7 +65,6 @@ app.use('/api/workspaces', require('./routes/workspaceRoutes'));
 app.use('/api/ril', require('./routes/rilRoutes'));
 app.use('/api/auth', require('./routes/userRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/serendipities', require('./routes/serendipityRoutes'));
 app.use('/api/advancelogger', require('./routes/AdvanedLoggerRoutes'));
 
 // Serve Frontend in Production
