@@ -9,6 +9,7 @@ import Loading from "../../components/Loading/Loading";
 import Header from '../../components/Header/Header';
 import RenderDocumentThumbnail from "../../components/Document/DocumentThumbnail";
 import SERPDocumentComponent from "./SerpDocumentComponent";
+import ChatComponent from "../../components/Chat/ChatComponent";
 
 import { getSearchResultLists, resetSearchResults, getDocumentThumbnailUrl } from '../../features/contents/contentResultsSlice';
 import { createQuery, getQueryDetails, resetWorkspaceData } from "../../features/workspace/workspaceSlice";
@@ -585,6 +586,7 @@ function ContentListsComponent() {
                     }
                 </>
             </div>
+            <ChatComponent currentUserIndex={user?.data?.userIndex || 0}/>
         </div>
     )
 }
