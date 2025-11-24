@@ -66,6 +66,7 @@ app.use('/api/ril', require('./routes/rilRoutes'));
 app.use('/api/auth', require('./routes/userRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/advancelogger', require('./routes/AdvanedLoggerRoutes'));
+app.use('/api/chat', require('./routes/chatRoutes'));
 
 // Serve Frontend in Production
 if (process.env.NODE_ENV === 'production') {

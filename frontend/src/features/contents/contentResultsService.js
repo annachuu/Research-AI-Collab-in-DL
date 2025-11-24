@@ -156,10 +156,24 @@ const getBookCover1 = async (doi, token) => {
     }
 };
 
+
+export const saveChatMessage = async (msg) =>
+{
+    return axios.post("/api/chat", msg);
+};
+
+export const getAllChatMessages = async () =>
+{
+    return axios.get("/api/chat");
+};
+
 const contentResultsService = {
     getBookResultLists,
     getDocumentCover,
-    getBookCover
+    getBookCover,
+    saveChatMessage,
+    getAllChatMessages
+
 }
 
 export default contentResultsService;

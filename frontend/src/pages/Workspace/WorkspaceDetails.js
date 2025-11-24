@@ -146,7 +146,7 @@ function WorkspaceDetails() {
                     </div>
                     
                     <div className='mt-14'>
-                      <h3 className="text-lg text-slate-500 mb-6 mt-6 font-bold">Workspace:: {singleWorkspace.workspace?.name}</h3>
+                      <h3 className="text-lg text-slate-500 mb-6 mt-6 font-bold">Workspace: {singleWorkspace.workspace?.name}</h3>
                         <div className='mx-4'>
                             {
                                 isWorkpsaceDetailSuccess && <>

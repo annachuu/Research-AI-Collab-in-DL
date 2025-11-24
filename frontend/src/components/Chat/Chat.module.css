@@ -52,14 +52,14 @@
 
 .time
 {
-    font-size: 0.7re,;
+    font-size: 0.7rem;
     color: grey;
 }
 
 .inputRow
 {
     display: flex;
-    border-top: 1px solide #e2e8f0;
+    border-top: 1px solid #e2e8f0;
     padding: 0.5rem;
 }
 

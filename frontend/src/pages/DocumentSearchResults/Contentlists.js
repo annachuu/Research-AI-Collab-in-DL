@@ -453,8 +453,8 @@ function ContentListsComponent() {
                             Search Results:
                             {contents.docs?.length > 0 ? (
                                 <span className="pl-2">
-    {Number(contents.info?.total).toLocaleString()}
-  </span>
+                                    {Number(contents.info?.total).toLocaleString()}
+                                </span>
                             ) : (
                                 <span className="pl-2">0</span>
                             )}
@@ -586,7 +586,11 @@ function ContentListsComponent() {
                     }
                 </>
             </div>
-            <ChatComponent currentUserIndex={user?.data?.userIndex || 0}/>
+            {/* Chat Box */}
+            <ChatComponent 
+                currentUsername={user?.data?.username || ''}
+                currentUserIndex={0}
+            />
         </div>
     )
 }
