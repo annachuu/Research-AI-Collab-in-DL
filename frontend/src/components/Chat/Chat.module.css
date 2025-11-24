@@ -26,6 +26,8 @@
     flex: 1;
     padding: 1rem;
     overflow-y: auto;
+    overflow-x: hidden;
+    max-width: 100%;
 }
 
 .message
@@ -35,6 +37,10 @@
     margin-bottom: 0.75rem;
     border-radius: 6px;
     border-left: 5px solid transparent;
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 .messageHeader
@@ -77,6 +83,10 @@
 {
     display: block;
     margin-bottom: 0.25rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    max-width: 100%;
 }
 
 .time

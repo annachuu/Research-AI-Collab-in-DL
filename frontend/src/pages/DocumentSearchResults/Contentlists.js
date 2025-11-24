@@ -448,7 +448,7 @@ function ContentListsComponent() {
                 
                 {isSERPLoading && <div><Loading /></div> }
                 <> 
-                    <div className="my-6 mx-36 flex justify-between items-center">
+                    <div className="my-6 mx-36 flex items-center relative">
                         <h3 className="text-lg font-bold">
                             Search Results:
                             {contents.docs?.length > 0 ? (
@@ -458,11 +458,12 @@ function ContentListsComponent() {
                             ) : (
                                 <span className="pl-2">0</span>
                             )}
-                        </h3>     
+                        </h3>
                         {QUERY_STRING !== null && 
-                            <SearchComponent/>
-                        }         
-                        
+                            <div className="absolute left-1/2 transform -translate-x-1/2">
+                                <SearchComponent/>
+                            </div>
+                        }
                     </div>
                     {contents.docs?.length > 0 &&
                         <> 

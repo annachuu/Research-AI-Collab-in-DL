@@ -1,5 +1,6 @@
 .listing_container{
     padding: 3rem 12rem;
+    padding-right: calc(12rem + 320px + 1rem);  /* 12rem for listing container + 320px for chat component + 1rem for padding, prevent content from being cut off behind chat component */
     overflow: auto;
     height: 100vh;
     padding-bottom: 18rem;
