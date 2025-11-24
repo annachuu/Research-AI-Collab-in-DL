@@ -47,6 +47,11 @@ const chatService =
     {
         const res = await axios.post(backend_url, message);
         return res.data;
+    },
+    deleteMessage: async (messageId, username) =>
+    {
+        const res = await axios.delete(`${backend_url}/${messageId}`, {data: {username}});
+        return res.data;
     }
 };
 
@@ -119,6 +124,30 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0 })
         }
     };
 
+    const deleteMessage = async (messageId) =>
+    {
+        if (!currentUsername || currentUsername.trim() === "")
+        {
+            console.error("Cannot delete message: username is missing");
+            return;
+        }
+
+        try
+        {
+            await chatService.deleteMessage(messageId, currentUsername);
+            setMessages(prev => prev.filter(msg => msg._id !== messageId));
+        }
+        catch (error)
+        {
+            console.error("Failed to delete message: ", error);
+            if (error.response)
+            {
+                console.error("Error response data:", error.response.data);
+                console.error("Error response status:", error.response.status);
+            }
+        }
+    };
+
     return (
         <div className={styles.chatContainer}>
             <h3 className={styles.title}>Chat</h3>
@@ -131,16 +160,28 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0 })
                         ? getColorIndexForUsername(msg.username) 
                         : (msg.userIndex || 0);
                     const userColor = User_Colours[colorIndex];
+                    const isOwnMessage = msg.username === currentUsername;
                     
                     return (
                         <div
-                            key={i}
+                            key={msg._id || i}
                             className={styles.message}
                             style={{borderLeftColor: userColor}}
                         >
-                            <span className={styles.user} style={{color: userColor}}>
-                                {msg.username}
-                            </span>
+                            <div className={styles.messageHeader}>
+                                <span className={styles.user} style={{color: userColor}}>
+                                    {msg.username}
+                                </span>
+                                {isOwnMessage && msg._id && (
+                                    <button
+                                        className={styles.deleteBtn}
+                                        onClick={() => deleteMessage(msg._id)}
+                                        title="Delete message"
+                                    >
+                                        ×
+                                    </button>
+                                )}
+                            </div>
                             <span className={styles.text}>{msg.text}</span>
                             <span className={styles.time}>{new Date(msg.createdAt).toLocaleTimeString()}</span>
                         </div>
