@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styles from "./Chat.module.css";
 import axios from 'axios'
 
@@ -59,6 +59,17 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0 })
 {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
+    const messagesEndRef = useRef(null);
+    const messagesBoxRef = useRef(null);
+
+    // Auto-scroll to bottom when messages change
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
 
     // Getting new message every second
     useEffect(() =>
@@ -152,13 +163,15 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0 })
         <div className={styles.chatContainer}>
             <h3 className={styles.title}>Chat</h3>
 
-            <div className={styles.messagesBox}>
+            <div className={styles.messagesBox} ref={messagesBoxRef}>
                 {messages.map((msg, i) => 
                 {
-                    // Get color index based on username (fallback to userIndex if username-based calculation fails)
-                    const colorIndex = msg.username 
+                    // Get color index based on username (fallback to userIndex IF username-based calculation fails)
+                    // Ensure colorIndex is always within the 10-color range (0-9)
+                    let colorIndex = msg.username 
                         ? getColorIndexForUsername(msg.username) 
                         : (msg.userIndex || 0);
+                    colorIndex = Math.max(0, Math.min(colorIndex, User_Colours.length - 1));
                     const userColor = User_Colours[colorIndex];
                     const isOwnMessage = msg.username === currentUsername;
                     
@@ -169,9 +182,12 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0 })
                             style={{borderLeftColor: userColor}}
                         >
                             <div className={styles.messageHeader}>
-                                <span className={styles.user} style={{color: userColor}}>
-                                    {msg.username}
-                                </span>
+                                <div className={styles.messageContent}>
+                                    <span className={styles.user} style={{color: userColor}}>
+                                        {msg.username}:
+                                    </span>
+                                    <span className={styles.text}>{msg.text}</span>
+                                </div>
                                 {isOwnMessage && msg._id && (
                                     <button
                                         className={styles.deleteBtn}
@@ -182,11 +198,22 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0 })
                                     </button>
                                 )}
                             </div>
-                            <span className={styles.text}>{msg.text}</span>
-                            <span className={styles.time}>{new Date(msg.createdAt).toLocaleTimeString()}</span>
+                            <div className={styles.messageFooter}>
+                                <span className={styles.time}>
+                                    {new Date(msg.createdAt).toLocaleString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric',
+                                        hour: 'numeric',
+                                        minute: '2-digit',
+                                        hour12: true
+                                    })}
+                                </span>
+                            </div>
                         </div>
                     );
                 })}
+                <div ref={messagesEndRef} />
             </div>
 
             <div className={styles.inputRow}>
