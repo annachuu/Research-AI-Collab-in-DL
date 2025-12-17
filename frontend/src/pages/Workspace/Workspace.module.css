@@ -87,3 +87,24 @@ input::-webkit-input-placeholder {
     width: 5rem;
     height: 6.5rem;
 }
+
+
+.workspaceContentTimelineContainer {
+    display: flex;
+    gap: 2rem; /* spacing between left and right */
+    align-items: flex-start;
+    width: 100%;
+}
+
+.workspaceLeft {
+    flex: 1; /* take up remaining space */
+    max-width: calc(100% - 340px); /* leave space for timeline */
+}
+
+.workspaceRight {
+    width: 320px; /* fixed sidebar width */
+    position: sticky;
+    top: 6rem; /* adjust based on header height */
+    height: calc(100vh - 6rem);
+    overflow-y: auto;
+}

@@ -22,7 +22,7 @@ function DashboardComponent() {
             console.log(message)
         }
 
-        if(!user){
+        if(!user || !user.data){
             navigate('/login')
         }else{
             const user_data = {

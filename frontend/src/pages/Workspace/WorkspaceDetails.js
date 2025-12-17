@@ -7,6 +7,8 @@ import { getWorkspaceDetails, createQuery, setSelectedWorkspace, resetWorkspaceD
 import {  setDocumentRemovedSuccess } from '../../features/Document/documentSlice';
 import RenderDocumentThumbnail from '../../components/Document/DocumentThumbnail';
 import DocumentComponent from '../../components/Document/DocumentComponent';
+import UserTimeline from "../../components/History/enhancedTimeline";
+
 
 import default_thumbnail from '../../assets/default_thmbnail.png'
 import Loading from '../../components/Loading/Loading';
@@ -25,6 +27,13 @@ function WorkspaceDetails() {
     const [searchInput, setSearchInput] = useState("") 
     const [currentWorkspace, setCurrentWorkspace] = useState({})    
     
+    const [pageLoading, setPageLoading] = useState(false);
+    const [showDetails, setShowDetails] = useState(false);
+    const [details, setDetails] = useState(null);
+
+    const timelineQueries = singleWorkspace.queries || [];
+    const isQueryDetailSuccess = timelineQueries.length > 0;
+
 
     useEffect(()=>{
         dispatch(getWorkspaceDetails(id))
@@ -146,8 +155,10 @@ function WorkspaceDetails() {
                     </div>
                     
                     <div className='mt-14'>
+                        <div className="workspaceContentTimelineContainer">
+                        {/* Left Workspace */}
+                        <div className='workspaceLeft'>
                       <h3 className="text-lg text-slate-500 mb-6 mt-6 font-bold">Workspace: {singleWorkspace.workspace?.name}</h3>
-                        <div className='mx-4'>
                             {
                                 isWorkpsaceDetailSuccess && <>
                                     <div className='flex mb-4'>
@@ -162,7 +173,7 @@ function WorkspaceDetails() {
                                     </div>
                                     {
                                         singleWorkspace.queries.map((data, index) => (
-                                            <div key={data._id} className='w-full mb-4 p-4 border rounded-lg'>
+                                            <div key={data._id} className='w-full mb-4 p-4 border rounded-lg'style={{ width: '70%', maxWidth: '100%' }}>
                                                 <div className='border-b border-solid border-slate-200 mb-3'>
                                                     <div className='mb-3 flex items-center'>
                                                         <div onClick={() => redirectToContentLists(data)} className='flex items-center'>
@@ -191,12 +202,26 @@ function WorkspaceDetails() {
                                                 </div>
                                             </div>
                                         ))}
+                                        
                                 </>
                             }
+                            
                         </div>
+                        {/* Right: Timeline Sidebar */}
+                            {isQueryDetailSuccess && timelineQueries.length > 0 && (
+                                <div className="workspaceRight">
+                                <UserTimeline 
+                                    queries={timelineQueries}
+                                    setPageLoading={setPageLoading}
+                                    setShowDetails={setShowDetails}
+                                    setDetails={setDetails}
+                                    />
+                                    </div>
+                            )}
                     </div>
-                </div>
-                
+                    </div>
+                    
+                    </div>
              </div>
         </>
     )

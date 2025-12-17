@@ -18,22 +18,23 @@ const User_Colours =
 
 const backend_url = "http://localhost:5006/api/chat";
 
-// Ensuring each username gets a unique colour, cycling through the 10 colors
-const getColorIndexForUsername = (username) =>
+// Ensuring each username gets a unique colour that never repeats
+// Colors are assigned based on alphabetical order of usernames to ensure consistency
+const getColorIndexForUsername = (username, uniqueUsernamesSorted = []) =>
 {
     if (!username) return 0;
     
-    // Hash function to convert username to a colour number
-    let hash = 0;
-    for (let i = 0; i < username.length; i++)
-    {
-        const char = username.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32-bit integer
+    // Find the position of this username in the sorted unique usernames list
+    const usernameIndex = uniqueUsernamesSorted.indexOf(username);
+    
+    // If username is found, assign color based on its position
+    // This ensures each username always gets the same color and no duplicates
+    if (usernameIndex !== -1) {
+        return usernameIndex % User_Colours.length;
     }
     
-    // Cycle through the 10 colors
-    return Math.abs(hash) % User_Colours.length;
+    // Fallback: if username not in list, use first color
+    return 0;
 };
 
 const chatService = 
@@ -103,7 +104,13 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0 })
         }
 
         // Calculate userIndex based on username to ensure consistent color assignment
-        const calculatedUserIndex = getColorIndexForUsername(currentUsername);
+        // Get all unique usernames from current messages, add current user if needed, and sort
+        const allUsernames = messages.map(msg => msg.username).filter(Boolean);
+        if (!allUsernames.includes(currentUsername)) {
+            allUsernames.push(currentUsername);
+        }
+        const uniqueUsernamesSorted = [...new Set(allUsernames)].sort();
+        const calculatedUserIndex = getColorIndexForUsername(currentUsername, uniqueUsernamesSorted);
 
         const newMsg = 
         {
@@ -164,16 +171,23 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0 })
             <h3 className={styles.title}>Chat</h3>
 
             <div className={styles.messagesBox} ref={messagesBoxRef}>
-                {messages.map((msg, i) => 
-                {
-                    // Get color index based on username (fallback to userIndex IF username-based calculation fails)
-                    // Ensure colorIndex is always within the 10-color range (0-9)
-                    let colorIndex = msg.username 
-                        ? getColorIndexForUsername(msg.username) 
-                        : (msg.userIndex || 0);
-                    colorIndex = Math.max(0, Math.min(colorIndex, User_Colours.length - 1));
-                    const userColor = User_Colours[colorIndex];
-                    const isOwnMessage = msg.username === currentUsername;
+                {(() => {
+                    // Extract all unique usernames from messages and sort them alphabetically
+                    // This ensures consistent color assignment: first user gets color 0, second gets color 1, etc.
+                    // No two users will have the same color as long as we have <= 10 unique users
+                    const allUsernames = messages.map(msg => msg.username).filter(Boolean);
+                    const uniqueUsernamesSorted = [...new Set(allUsernames)].sort();
+                    
+                    return messages.map((msg, i) => 
+                    {
+                        // Get color index based on username's position in sorted unique usernames
+                        // This ensures no color repeats and each username always gets the same color
+                        let colorIndex = msg.username 
+                            ? getColorIndexForUsername(msg.username, uniqueUsernamesSorted) 
+                            : (msg.userIndex || 0);
+                        colorIndex = Math.max(0, Math.min(colorIndex, User_Colours.length - 1));
+                        const userColor = User_Colours[colorIndex];
+                        const isOwnMessage = msg.username === currentUsername;
                     
                     return (
                         <div
@@ -212,7 +226,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0 })
                             </div>
                         </div>
                     );
-                })}
+                })})()}
                 <div ref={messagesEndRef} />
             </div>
 

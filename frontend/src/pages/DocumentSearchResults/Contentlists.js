@@ -10,6 +10,7 @@ import Header from '../../components/Header/Header';
 import RenderDocumentThumbnail from "../../components/Document/DocumentThumbnail";
 import SERPDocumentComponent from "./SerpDocumentComponent";
 import ChatComponent from "../../components/Chat/ChatComponent";
+import UserTimeline from "../../components/History/timeline";
 
 import { getSearchResultLists, resetSearchResults, getDocumentThumbnailUrl } from '../../features/contents/contentResultsSlice';
 import { createQuery, getQueryDetails, resetWorkspaceData } from "../../features/workspace/workspaceSlice";
@@ -50,6 +51,9 @@ function ContentListsComponent() {
     const [isDocSaved, setIsDocSaved] = useState(false)
     const [tempDocs, setTempDoc] = useState([])
     const [tempRils, setTempRils] = useState([])
+    const [pageLoading, setPageLoading] = useState(false)
+    const [showDetails, setShowDetails] = useState(false)
+    const [details, setDetails] = useState(null)
     
     const limitperpage = 10;
     const initialPagination = {"offset": 0, "limit": limitperpage}
@@ -427,12 +431,24 @@ function ContentListsComponent() {
         }
     }        
 
+    // Prepare queries data for timeline
+    const timelineQueries = queryDetailObject?._id 
+        ? [{
+            ...queryDetailObject,
+            documents: capturedDocs || queryDetailObject.documents || [],
+            searchTopic: localStorage.getItem("searchTopic") || queryDetailObject.query
+          }]
+        : [];
+
     return (
         <div>      
             <Header />      
             
             {/* search results */}            
-            <div className="mt_22">  
+            <div className="mt_22 flex">
+                
+                {/* Main Content */}
+                <div className="flex-1">  
                 <div className={`flex items-center px-6 py-3 nav_wrap`} >
                     <div className='flex items-center cursor-pointer hover:text-indigo-800 transition ease-out' onClick={redirectToDashboard}>
                         <FaChevronLeft />
@@ -586,12 +602,34 @@ function ContentListsComponent() {
                         </div>
                     }
                 </>
+                </div>
             </div>
-            {/* Chat Box */}
-            <ChatComponent 
-                currentUsername={user?.data?.username || ''}
-                currentUserIndex={0}
-            />
+
+            <div className="layoutWrapper">
+                <div className="leftPanel">
+                    {/* Timeline Sidebar */}
+                    {isQueryDetailSuccess && timelineQueries.length > 0 && (
+                            <UserTimeline 
+                                queries={timelineQueries}
+                                setPageLoading={setPageLoading}
+                                setShowDetails={setShowDetails}
+                                setDetails={setDetails}
+                            />
+                    )}
+                </div>
+
+                <div className="rightPanel">
+                    {/* Chat Box */}
+                    <ChatComponent 
+                        currentUsername={user?.data?.username || ''}
+                        currentUserIndex={0}
+                    />
+                </div>
+            </div>
+
+        
+
+
         </div>
     )
 }
