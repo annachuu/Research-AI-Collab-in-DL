@@ -1,53 +1,59 @@
-.timelineContainer {
-  position: sticky;
-  top: 0;
+.timelineContainer 
+{
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 .noQueries {
   padding: 1rem;
 }
 
-.timelineWrapper {
+.timelineWrapper 
+{
   background: #ffffff;
   border-left: 2px solid #e2e8f0; 
-  border-radius: 6px; 
+  border-radius: 6px;
   box-shadow: -2px 0 6px rgba(0, 0, 0, 0.1);
-  height: 70vh; 
+  height: 70vh;
   width: 100%;
-  max-width: 400px;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
-  position: fixed;
-  right: 380px; 
-  top: 23.5rem;
 }
 
-.timelineScrollContainer {
+.timelineScrollContainer 
+{
   flex: 1;
   padding: 1.5rem;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
-.timelineScrollContainer::-webkit-scrollbar {
+.timelineScrollContainer::-webkit-scrollbar 
+{
   width: 8px;
 }
 
-.timelineScrollContainer::-webkit-scrollbar-track {
+.timelineScrollContainer::-webkit-scrollbar-track 
+{
   background: transparent;
   border-radius: 10px;
 }
 
-.timelineScrollContainer::-webkit-scrollbar-thumb {
+.timelineScrollContainer::-webkit-scrollbar-thumb 
+{
   background: rgba(24, 24, 80, 0.9);
   border-radius: 10px;
 }
 
-.timelineScrollContainer::-webkit-scrollbar-thumb:hover {
+.timelineScrollContainer::-webkit-scrollbar-thumb:hover 
+{
   background:rgba(24, 24, 80, 1);
 }
 
-.timelineTitle {
+.timelineTitle 
+{
   padding: 1rem; 
   font-size: 1.1rem;
   font-weight: bold;
@@ -55,24 +61,9 @@
 }
 
 
-.layoutWrapper {
-  display: flex;
-  gap: 2rem;
-}
 
-.leftPanel {
-  width: 42rem;
-  flex-shrink: 0;
-}
-
-.rightPanel {
-  flex-grow: 1;
-  max-width: 400px;
-}
-
-
-
-.queryGroup {
+.queryGroup 
+{
   background: #f8fafc; 
   padding: 0.75rem;
   margin-bottom: 0.75rem;
@@ -81,14 +72,16 @@
   max-width: 100%;
 }
 
-.queryDate {
+.queryDate 
+{
   font-weight: bold;
   margin-bottom: 0.25rem;
   border-bottom: 1px solid #e2e8f0;
   padding-bottom: 0.25rem;
 }
 
-.queryItem {
+.queryItem 
+{
   background: #f8fafc;
   padding: 0.75rem 0.75rem 0.75rem 2.5rem;
   margin-bottom: 0.75rem;
@@ -103,7 +96,8 @@
   word-break: break-word;
 }
 
-.queryItemRemoved {
+.queryItemRemoved 
+{
   position: relative;
   margin-bottom: 0.75rem;
   padding: 0.75rem;
@@ -113,14 +107,16 @@
   background: #f8fafc;
 }
 
-.queryItemTime {
+.queryItemTime 
+{
   font-size: 0.7rem;
   color: grey;
   text-align: right;
   margin-top: 0.25rem;
 }
 
-.queryItemIcon {
+.queryItemIcon 
+{
   position: absolute;
   margin-right: 10px;
   left: 10px;
@@ -128,7 +124,8 @@
   cursor: pointer;
 }
 
-.queryBox {
+.queryBox 
+{
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -139,18 +136,16 @@
   cursor: pointer;
 }
 
-.queryText {
+.queryText 
+{
   display: flex;
   align-items: center;
 }
 
-.queryTime {
+.queryTime 
+{
   font-size: 0.7rem;
   color: grey;
   text-align: right;
   margin-left: 0.5rem;
 }
-
-
-
-

@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useMemo} from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FaChevronLeft, FaRegFileLines, FaMagnifyingGlass } from "react-icons/fa6";
+import { FaChevronLeft, FaRegFileLines, FaMagnifyingGlass, FaXmark } from "react-icons/fa6";
 
 import { getWorkspaceDetails, createQuery, setSelectedWorkspace, resetWorkspaceData } from '../../features/workspace/workspaceSlice';
 import {  setDocumentRemovedSuccess } from '../../features/Document/documentSlice';
@@ -15,6 +15,7 @@ import Loading from '../../components/Loading/Loading';
 import Header from '../../components/Header/Header';
 import styles from "./Workspace.module.css";
 import { isbn_url } from "../../config/env";
+
 
 function WorkspaceDetails() {
     const dispatch = useDispatch(); 
@@ -33,6 +34,102 @@ function WorkspaceDetails() {
 
     const timelineQueries = singleWorkspace.queries || [];
     const isQueryDetailSuccess = timelineQueries.length > 0;
+
+    // New queries
+    const [refetchQueries, setRefetchQueries] = useState(false);
+    const [highlightedTopic, setHighlightedTopic] = useState(localStorage.getItem('searchTopic'));
+    const [selectedTopicQueries, setSelectedTopicQueries] = useState(null);
+
+    // Formatting Date Time Function
+    const formatDateTime = (date) => 
+    {
+    if (!date) return '';
+    const d = new Date(date);
+    return d.toLocaleDateString('en-US', 
+    { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    });
+    };
+
+    // Grouping queries based on search topic
+    const topicsGrouped = useMemo(() => 
+    {                                                                                         
+        const grouped = {};
+        timelineQueries.forEach(query => 
+        {
+            const topic = query.searchTopic || query.query || 'Untitled';
+            if (!grouped[topic]) 
+            {
+                grouped[topic] = [];
+            }
+            grouped[topic].push(query);
+        });
+        return grouped;
+    }, [timelineQueries]);
+
+    // Convert to array of objects
+    const topicLinks = useMemo(() => 
+    {
+        return Object.entries(topicsGrouped).map(([key, value]) => ({ [key]: value }));
+    }, [topicsGrouped]);
+
+    // New Effects
+    // Initialize the selected topic queries
+    useEffect(() => 
+    {
+        if (topicLinks.length > 0 && selectedTopicQueries === null) 
+        {
+            // Set to highlighted topic or first topic
+            const targetTopic = highlightedTopic || Object.keys(topicsGrouped)[0];
+            if (topicsGrouped[targetTopic]) 
+            {
+                setSelectedTopicQueries(topicsGrouped[targetTopic]);
+                if (!highlightedTopic) 
+                {
+                    setHighlightedTopic(targetTopic);
+                }
+            } 
+            else if (Object.keys(topicsGrouped).length > 0) 
+            {
+                const firstTopic = Object.keys(topicsGrouped)[0];
+                setSelectedTopicQueries(topicsGrouped[firstTopic]);
+                setHighlightedTopic(firstTopic);
+            }
+        }
+    }, [topicLinks, topicsGrouped, highlightedTopic, selectedTopicQueries]);
+
+    // Update selected queries when highlighted topic change
+    useEffect(() => 
+    {
+        if (highlightedTopic && topicsGrouped[highlightedTopic]) 
+        {
+            setSelectedTopicQueries(topicsGrouped[highlightedTopic]);
+        }
+    }, [highlightedTopic, topicsGrouped]);
+
+    useEffect(()=>
+    {
+        dispatch(getWorkspaceDetails(id))
+        // console.log(singleWorkspace)
+        return() => 
+        {
+            dispatch(resetWorkspaceData())
+        }
+    }, [dispatch, id])
+
+    useEffect(() => 
+    {
+        if (refetchQueries) 
+        {
+            dispatch(getWorkspaceDetails(id));
+            setRefetchQueries(false);
+        }
+    }, [refetchQueries, dispatch, id])
 
 
     useEffect(()=>{
@@ -113,6 +210,18 @@ function WorkspaceDetails() {
         navigate('/')
     }
 
+    // New Handles
+    const handleResumeCallback = (topic) => 
+    {
+        setHighlightedTopic(topic);
+    } 
+
+    const handleTopicClick = (topic, queries) => 
+    {
+        setSelectedTopicQueries(queries);
+        setHighlightedTopic(topic);
+    };
+
     return (
         <>
             <Header />
@@ -134,7 +243,7 @@ function WorkspaceDetails() {
                 <div className='main_element_container'>
                     
                     <div className='flex justify-center'>                 
-                        <form onSubmit={submitFormHandler} className={`${styles.cw_42, styles.search_bar}`}>
+                        <form onSubmit={submitFormHandler} className={`${styles.cw_42} ${styles.search_bar}`}>
                             <div className={`flex rounded-full shadow appearance-none focus:outline-none focus:shadow-outline w-full ${styles.search_input}`}>
                                 <div className="ltr">
                                     <input className={`rounded-s-full w-full px-4 py-3 text-slate-500 leading-tight focus:outline-none focus:shadow-outline`} 
@@ -155,9 +264,9 @@ function WorkspaceDetails() {
                     </div>
                     
                     <div className='mt-14'>
-                        <div className="workspaceContentTimelineContainer">
+                        <div className={styles.workspaceContentTimelineContainer}>
                         {/* Left Workspace */}
-                        <div className='workspaceLeft'>
+                        <div className={styles.workspaceLeft}>
                       <h3 className="text-lg text-slate-500 mb-6 mt-6 font-bold">Workspace: {singleWorkspace.workspace?.name}</h3>
                             {
                                 isWorkpsaceDetailSuccess && <>
@@ -171,7 +280,7 @@ function WorkspaceDetails() {
                                             <span className='text-sm font-semibold'>Total Documents: {singleWorkspace.docSize} </span>
                                         </div>
                                     </div>
-                                    {
+                                    {/* {
                                         singleWorkspace.queries.map((data, index) => (
                                             <div key={data._id} className='w-full mb-4 p-4 border rounded-lg'style={{ width: '70%', maxWidth: '100%' }}>
                                                 <div className='border-b border-solid border-slate-200 mb-3'>
@@ -202,21 +311,68 @@ function WorkspaceDetails() {
                                                 </div>
                                             </div>
                                         ))}
-                                        
+                                         */
+
+                                        <div className={styles.topicsSidebar}>
+                                            <div>
+                                                {topicLinks.map((link) => {
+                                                    const entries = Object.entries(link);
+                                                    const [key, value] = entries[0];
+                                                    const latestQuery = value.length > 0 ? value[0] : undefined;
+                                                    const latestQueryRepresentation = latestQuery ? formatDateTime(latestQuery.updatedAt) : '';
+                                                    const isHighlighted = highlightedTopic === key;
+                                                    const isOngoing = localStorage.getItem('searchTopic') === key;
+                                                    
+                                                    return (
+                                                        <div key={key} className={styles.topicItem}>
+                                                            <div
+                                                                className={`${styles.topicButton} ${isHighlighted ? styles.topicButtonHighlighted : ''}`}
+                                                                onClick={() => handleTopicClick(key, value)}
+                                                            >
+                                                                <FaRegFileLines className={styles.topicIcon} />
+                                                                <div className={styles.topicContent}>
+                                                                    <span className={styles.topicName}>{key}</span>
+                                                                    {/* Ongoing symbol */}
+                                                                    {/* {isOngoing && (                                                 
+                                                                        <span className={styles.ongoingChip}>
+                                                                            Ongoing Topic
+                                                                        </span>
+                                                                    )} */}
+                                                                </div>
+                                                            </div>
+                                                            <div className={styles.topicTimestamp}>
+                                                                <span className={styles.topicTimestampText}>
+                                                                    {latestQueryRepresentation}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                         }
                                 </>
-                            }
-                            
+                            }    
                         </div>
+
                         {/* Right: Timeline Sidebar */}
-                            {isQueryDetailSuccess && timelineQueries.length > 0 && (
-                                <div className="workspaceRight">
-                                <UserTimeline 
-                                    queries={timelineQueries}
-                                    setPageLoading={setPageLoading}
-                                    setShowDetails={setShowDetails}
-                                    setDetails={setDetails}
+                            {/* {isQueryDetailSuccess && timelineQueries.length > 0 && ( */}
+                            {selectedTopicQueries && selectedTopicQueries.length > 0 && (
+                                <div className={styles.workspaceRight}>
+                                    <UserTimeline 
+                                        userobj={user?.data || {}}
+                                        queries={selectedTopicQueries}              // only selected query will be shown on timeline
+                                        setRefetchQueries={setRefetchQueries}
+                                        onResumeCallback={handleResumeCallback}
+                                        refetchQueries={refetchQueries}
+                                        setHighlightedTopic={setHighlightedTopic}
+
+                                        // queries={timelineQueries}                // allows all queries to be shown on timeline
+                                        setPageLoading={setPageLoading}
+                                        setShowDetails={setShowDetails}
+                                        setDetails={setDetails}
                                     />
-                                    </div>
+                                </div>
                             )}
                     </div>
                     </div>

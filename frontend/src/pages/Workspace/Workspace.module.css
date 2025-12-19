@@ -89,22 +89,111 @@ input::-webkit-input-placeholder {
 }
 
 
-.workspaceContentTimelineContainer {
+.workspaceContentTimelineContainer 
+{
     display: flex;
-    gap: 2rem; /* spacing between left and right */
+    justify-content: center;
     align-items: flex-start;
+    gap: 3rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.workspaceLeft 
+{
+    width: 350px;
+    flex-shrink: 0;
+}
+
+.workspaceRight 
+{
+    width: 800px;
+    flex-shrink: 0;
+}
+
+
+/* CSS for the Side bar with Queries */
+.topicsSidebar 
+{
     width: 100%;
 }
 
-.workspaceLeft {
-    flex: 1; /* take up remaining space */
-    max-width: calc(100% - 340px); /* leave space for timeline */
+.topicItem 
+{
+   width: 100%;
+   margin: 1.5rem 0;
 }
 
-.workspaceRight {
-    width: 320px; /* fixed sidebar width */
-    position: sticky;
-    top: 6rem; /* adjust based on header height */
-    height: calc(100vh - 6rem);
-    overflow-y: auto;
+.topicButton 
+{
+    display: flex;
+    align-items: center;
+    padding: 0.8rem;
+    border-radius: 5px;
+    cursor: pointer;
+    border: 2px solid rgb(42, 42, 65);
+    background: #ffffff;
+    transition: background-color 0.2s;
+    box-shadow: -2px 0 6px rgba(0, 0, 0, 0.1);
 }
+
+.topicButton:hover 
+{
+    background: rgba(24, 24, 80, 0.9);
+    color: #ffffff;
+}
+
+.topicButtonHighlighted 
+{
+    background-color: rgba(24, 24, 80, 0.9);
+    border-color: #dae5f5;
+    color: rgb(255, 255, 255);
+}
+
+.topicIcon 
+{
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+}
+
+
+.topicContent 
+{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-grow: 1;
+    margin: 3px;
+}
+
+.topicName 
+{
+    font-size: 1.2rem;
+}
+
+/* .ongoingChip 
+{
+    margin-left: 0.5rem;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    border: 1px solid rgba(24, 24, 80, 0.9);
+    color: #15803d;
+    border-radius: 4px;
+    white-space: nowrap;
+} */
+
+.topicTimestamp 
+{
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: 0.25rem;
+}
+
+.topicTimestampText 
+{
+    font-size: 1rem;
+    font-weight: bold;
+    color: rgba(24, 24, 80, 0.9);
+}
+
