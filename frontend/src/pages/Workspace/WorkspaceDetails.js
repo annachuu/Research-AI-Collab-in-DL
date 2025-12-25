@@ -37,7 +37,7 @@ function WorkspaceDetails() {
 
     // New queries
     const [refetchQueries, setRefetchQueries] = useState(false);
-    const [highlightedTopic, setHighlightedTopic] = useState(localStorage.getItem('searchTopic'));
+    const [highlightedTopic, setHighlightedTopic] = useState(null);
     const [selectedTopicQueries, setSelectedTopicQueries] = useState(null);
 
     // Formatting Date Time Function
@@ -80,28 +80,44 @@ function WorkspaceDetails() {
 
     // New Effects
     // Initialize the selected topic queries
+    // useEffect(() => 
+    // {
+    //     if (topicLinks.length > 0 && selectedTopicQueries === null) 
+    //     {
+    //         // Set to highlighted topic or first topic
+    //         const targetTopic = highlightedTopic || Object.keys(topicsGrouped)[0];
+    //         if (topicsGrouped[targetTopic]) 
+    //         {
+    //             setSelectedTopicQueries(topicsGrouped[targetTopic]);
+    //             if (!highlightedTopic) 
+    //             {
+    //                 setHighlightedTopic(targetTopic);
+    //             }
+    //         } 
+    //         else if (Object.keys(topicsGrouped).length > 0) 
+    //         {
+    //             const firstTopic = Object.keys(topicsGrouped)[0];
+    //             setSelectedTopicQueries(topicsGrouped[firstTopic]);
+    //             setHighlightedTopic(firstTopic);
+    //         }
+    //     }
+    // }, [topicLinks, topicsGrouped, highlightedTopic, selectedTopicQueries]);
     useEffect(() => 
     {
-        if (topicLinks.length > 0 && selectedTopicQueries === null) 
-        {
-            // Set to highlighted topic or first topic
-            const targetTopic = highlightedTopic || Object.keys(topicsGrouped)[0];
-            if (topicsGrouped[targetTopic]) 
-            {
-                setSelectedTopicQueries(topicsGrouped[targetTopic]);
-                if (!highlightedTopic) 
-                {
-                    setHighlightedTopic(targetTopic);
-                }
-            } 
-            else if (Object.keys(topicsGrouped).length > 0) 
-            {
-                const firstTopic = Object.keys(topicsGrouped)[0];
-                setSelectedTopicQueries(topicsGrouped[firstTopic]);
-                setHighlightedTopic(firstTopic);
-            }
-        }
-    }, [topicLinks, topicsGrouped, highlightedTopic, selectedTopicQueries]);
+        if (!topicsGrouped || Object.keys(topicsGrouped).length === 0) return;
+
+        const firstTopic = Object.keys(topicsGrouped)[0];
+
+        setHighlightedTopic(firstTopic);
+        setSelectedTopicQueries(topicsGrouped[firstTopic]);
+    }, [topicsGrouped]);
+
+    // Ensures no previous workspace states is carried between workspaces
+    useEffect(() => 
+    {
+        setHighlightedTopic(null);
+        setSelectedTopicQueries(null);
+    }, [id]);
 
     // Update selected queries when highlighted topic change
     useEffect(() => 
