@@ -10,6 +10,7 @@ const documentSchema = mongoose.Schema(
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },    
     workspaceId: {type: mongoose.Schema.Types.ObjectId, default: null},   
     queryId: {type: mongoose.Schema.Types.ObjectId, default: null},
+    queryKey: {type: String, default: null, index: true},              // Normalized query string for user sharing
     title: { type: String, required: [true, 'Please add a document title']},
     doc_type: {type: String, default: null},
     doc_authors: {type: Array, default: []},
@@ -20,6 +21,7 @@ const documentSchema = mongoose.Schema(
     doc_partof : {type: String, default: null},
     doc_peerreview : {type: Boolean, default: null},
     doc_openaccess : {type: Boolean, default: null},
+    doc_isRemoved : {type: Boolean, default: false},                    // !!!
     doc_fulltext : {type: String, default: null},
     doc_onlineaccess : {type: String, default: null},
     doc_getPdf : {type: String, default: null},

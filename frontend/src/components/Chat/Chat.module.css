@@ -30,6 +30,22 @@
     max-width: 100%;
 }
 
+.messagesBox::-webkit-scrollbar 
+{
+    width: 8px;
+}
+
+.messagesBox::-webkit-scrollbar-thumb 
+{
+    background-color: #babfc5;
+    border-radius: 10px;
+}
+
+.messagesBox::-webkit-scrollbar-thumb:hover 
+{
+    background-color: grey;
+}
+
 .message
 {
     background: #f8fafc;

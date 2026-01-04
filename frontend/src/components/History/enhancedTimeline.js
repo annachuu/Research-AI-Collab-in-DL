@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { FaMagnifyingGlass } from "react-icons/fa6";
+import SearchIcon from '@mui/icons-material/Search';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import NewspaperIcon from '@mui/icons-material/Newspaper';
+import VideocamIcon from '@mui/icons-material/Videocam';
+import AudioFileIcon from '@mui/icons-material/AudioFile';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import { useNavigate } from "react-router-dom";
 import styles from "./enhancedTimeline.module.css";
 
@@ -46,16 +51,25 @@ const formatTime = (date) => {
 const IconMapper = ({ format }) => {
     const formatLower = format?.toLowerCase() || '';
     
-    if (formatLower.includes('book') || formatLower.includes('ebook')) {
-        return <span>📚 </span>;
-    } else if (formatLower.includes('article') || formatLower.includes('journal')) {
-        return <span>📄 </span>;
-    } else if (formatLower.includes('video')) {
-        return <span>🎥 </span>;
-    } else if (formatLower.includes('audio')) {
-        return <span>🎵 </span>;
-    } else {
-        return <span>📋 </span>;
+    if (formatLower.includes('book') || formatLower.includes('ebook')) 
+    {
+        return <MenuBookIcon/>;
+    } 
+    else if (formatLower.includes('article') || formatLower.includes('journal')) 
+    {
+        return <NewspaperIcon/>;
+    } 
+    else if (formatLower.includes('video')) 
+    {
+        return <VideocamIcon/>;
+    } 
+    else if (formatLower.includes('audio')) 
+    {
+        return <AudioFileIcon/>;
+    } 
+    else 
+    {
+        return <InsertDriveFileIcon/>;
     }
 };
 
@@ -110,86 +124,82 @@ export default function UserTimeline({ queries, setPageLoading, setShowDetails, 
     );
   }
 
-return (
-    <div className={styles.timelineContainer}>
-    <div className={styles.timelineWrapper}>
-        <div className={styles.timelineScrollContainer}>
-        <h3 className={styles.timelineTitle}>
-            Search Topic:
-        </h3>
-        {queries.map((query) => {
-            const initialSearch = formatDateTime(query.createdAt);
-            let previousDate = null;
-
-            return (
-            <div key={query._id} className={styles.queryGroup}>
-                <h4 className={styles.queryDate}>
-                {formatDate(query.createdAt)}
-                </h4>
-                {query.documents?.map((doc) => {
-                const timechanger = formatTime(doc.createdAt || doc.updatedAt || new Date());
-                previousDate = doc.updatedAt;
-                const docTitle = doc.title || doc.docdata?.Title || 'Untitled Document';
-                const docFormat = doc.doc_type || doc.docdata?.Format || doc.docdata?.doc_type || '';
-                const controlNumber = doc.documentId || doc.ControlNumber || doc._id;
+    return (
+        <div className={styles.timelineContainer}>
+        <div className={styles.timelineWrapper}>
+            <div className={styles.timelineScrollContainer}>
+            <h3 className={styles.timelineTitle}>
+                History:
+            </h3>
+            {queries.map((query) => {
+                const initialSearch = formatDateTime(query.createdAt);
+                let previousDate = null;
 
                 return (
+                <div key={query._id} className={styles.queryGroup}>
+                    <h4 className={styles.queryDate}>
+                    {formatDate(query.createdAt)}
+                    </h4>
+                    {query.documents?.map((doc) => {
+                    const timechanger = formatTime(doc.createdAt || doc.updatedAt || new Date());
+                    previousDate = doc.updatedAt;
+                    const docTitle = doc.title || doc.docdata?.Title || 'Untitled Document';
+                    const docFormat = doc.doc_type || doc.docdata?.Format || doc.docdata?.doc_type || '';
+                    const controlNumber = doc.documentId || doc.ControlNumber || doc._id;
+
+                    // Check for removed status (handle both doc_isRemoved and isRemoved for compatibility)
+                    const isRemoved = doc.doc_isRemoved ?? doc.isRemoved ?? false;
+
+                    return (
+                        <div
+                            key={doc._id || controlNumber}
+                            className={isRemoved ? styles.queryItemRemoved : styles.queryItem}
+                        >
+                        <div className={styles.queryItemContent}>
+                            {/* Top row, icon + title */}
+                            <div className={styles.queryItemHeader}>
+                            <div className={styles.queryItemIcon}>
+                                <IconMapper format={docFormat} />
+                            </div>
+                            <span
+                                className={isRemoved ? styles.queryItemTitleRemoved : styles.queryItemTitle}
+                                onClick={() =>
+                                    getDetails
+                                    (
+                                        controlNumber, 
+                                        setPageLoading, 
+                                        setShowDetails, 
+                                        setDetails
+                                    )
+                                }
+                            >
+                                {docTitle}{" "}
+                            </span>
+                            </div>
+
+                            {/* Time date in lower-right corner */}
+                            <div className={styles.queryItemDate}>{formatDate(doc.createdAt)}</div>
+                        </div>
+                        </div>
+                    );
+                    })}
+                    <div style={{ padding: "0px 0px" }}>
                     <div
-                    key={doc._id || controlNumber}
-                    className={doc.isRemoved ? styles.queryItemRemoved : styles.queryItem}
+                        className={styles.queryBox}
+                        onClick={() => getSearchResult(query.query)}
                     >
-                    <div className={styles.queryItemIcon}>
-                        <IconMapper format={docFormat} />
-                    </div>
-                    {doc.isRemoved ? (
-                        <span
-                        onClick={() =>
-                            getDetails(
-                            controlNumber,
-                            setPageLoading,
-                            setShowDetails,
-                            setDetails
-                            )
-                        }
-                        style={{ textDecoration: "line-through" }}
-                        >
-                        {docTitle}{" "}
+                        <span className={styles.queryText}>
+                        <SearchIcon fontSize="small" />
+                        <span style={{ marginLeft: "0.5rem" }}>{query.query}</span>
                         </span>
-                    ) : (
-                        <span
-                        onClick={() =>
-                            getDetails(
-                            controlNumber,
-                            setPageLoading,
-                            setShowDetails,
-                            setDetails
-                            )
-                        }
-                        >
-                        {docTitle}{" "}
-                        </span>
-                    )}
-                    <div className={styles.queryItemTime}>{timechanger}</div>
                     </div>
+                    <div className={styles.queryTime}>{initialSearch}</div>
+                    </div>
+                </div>
                 );
-                })}
-                <div style={{ padding: "0px 0px" }}>
-                <div
-                    className={styles.queryBox}
-                    onClick={() => getSearchResult(query.query)}
-                >
-                    <span className={styles.queryText}>
-                    <FaMagnifyingGlass fontSize="small" />
-                    <span style={{ marginLeft: "0.5rem" }}>{query.query}</span>
-                    </span>
-                </div>
-                <div className={styles.queryTime}>{initialSearch}</div>
-                </div>
+            })}
             </div>
-            );
-        })}
         </div>
-    </div>
     </div>
     );
 }

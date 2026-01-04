@@ -19,7 +19,10 @@ const {
 
 const {
     addDocumentToQuery,
-    removeDocumentFromQuery
+    removeDocumentFromQuery,
+    getAllDocuments,
+    getDocumentsByQueryId,
+    toggleDocumentSave
 } = require('../controllers/documentController')
 
 /**
@@ -45,7 +48,10 @@ router.get('/:workspaceId/query', getQueryIdsLists)
  * Register route for saving document to workspace
  */
 router.post('/document', addDocumentToQuery)
-router.put('/document/:workspaceId/:queryId/:docId', removeDocumentFromQuery);
+// router.put('/document/:workspaceId/:queryId/:docId', removeDocumentFromQuery);
+router.get('/document/all', getAllDocuments);
+router.get('/document/query/:queryId', getDocumentsByQueryId);      // Get documents by queryId with user info
+router.patch('/document/toggle/:documentId', toggleDocumentSave);   // Toggle document save/unsave
 router.get('/document/:workspaceId/:queryId/', getDocumentByQuery);
 
 

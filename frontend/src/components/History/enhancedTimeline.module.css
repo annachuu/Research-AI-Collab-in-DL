@@ -64,7 +64,6 @@
 
 .queryGroup 
 {
-  background: #f8fafc; 
   padding: 0.75rem;
   margin-bottom: 0.75rem;
   border-radius: 6px;
@@ -83,14 +82,14 @@
 .queryItem 
 {
   background: #f8fafc;
-  padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+  padding: 0.75rem;
   margin-bottom: 0.75rem;
   border-radius: 6px;
   border-left: 5px solid rgba(24, 24, 80, 0.9);
   display: flex;
-  flex-direction: column;
   position: relative;
   cursor: pointer;
+  gap: 0.5rem;
   word-wrap: break-word;
   overflow-wrap: break-word;
   word-break: break-word;
@@ -105,6 +104,10 @@
   text-decoration: line-through;
   border-radius: 6px;
   background: #f8fafc;
+  display: flex;
+  gap: 0.5rem;
+  text-decoration: line-through;
+  opacity: 0.5;
 }
 
 .queryItemTime 
@@ -117,11 +120,8 @@
 
 .queryItemIcon 
 {
-  position: absolute;
-  margin-right: 10px;
-  left: 10px;
-  top: 10px;
-  cursor: pointer;
+  display: flex;
+  align-items: center;
 }
 
 .queryBox 
@@ -148,4 +148,42 @@
   color: grey;
   text-align: right;
   margin-left: 0.5rem;
+}
+
+.queryItemContent
+{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  position: relative;
+  gap: 0.5rem;
+}
+
+.queryItemHeader
+{
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.queryItemTitle
+{
+  font-weight: 500;
+  cursor: pointer;
+  word-break: break-word;
+}
+
+.queryItemTitleRemoved
+{
+  font-weight: 400;
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.queryItemDate
+{
+  font-size: 0.8rem;
+  color: grey;
+  align-self: flex-end;
 }

@@ -21,7 +21,9 @@ import {
     setDocumentArraySuccess, 
     setDocumentAddedSuccess, 
     setDocumentRemovedSuccess,
+    setToggleDocumentSuccess,
     resetDocument,
+    toggleDocumentSave
     } from '../../features/Document/documentSlice';
 import { getRilDocumentLists, resetRilData, getRilDocumentCount, saveDocumentToRil, removeDocumentFromRil } from "../../features/RIL/rilSlice";
 
@@ -37,7 +39,7 @@ function ContentListsComponent() {
 
     const {contents, isSERPLoading,  isNewSearchKeyword, isLoading, isError, message, thumbnail} = useSelector((state) => state.content)
     const { isQueryDetailSuccess, queryDetailObject, singleQuery, quries, isQueryCreateSuccess} = useSelector((state) => state.workspace);
-    const {documents, isDocumentArraySuccess, isAddDocumentSuccess, isRemoveDocumentSuccess} = useSelector((state) => state.document);
+    const {documents, isDocumentArraySuccess, isAddDocumentSuccess, isRemoveDocumentSuccess, isToggleDocumentSuccess} = useSelector((state) => state.document);
     const { ril_documents, isRilArraySuccess, isAddToRilSuccess, isRemoveFromRilSuccess } = useSelector((state) => state.ril);
     
     const {workspaceId} = useParams();
@@ -48,8 +50,8 @@ function ContentListsComponent() {
     const [capturedDocs, setCapturedDocs] = useState([])
     const [capturedRilDocs, setCapturedRilDocs] = useState([])
     
-    const [isDocSaved, setIsDocSaved] = useState(false)
-    const [tempDocs, setTempDoc] = useState([])
+    // const [isDocSaved, setIsDocSaved] = useState(false)
+    // const [tempDocs, setTempDoc] = useState([])
     const [tempRils, setTempRils] = useState([])
     const [pageLoading, setPageLoading] = useState(false)
     const [showDetails, setShowDetails] = useState(false)
@@ -84,7 +86,28 @@ function ContentListsComponent() {
         dispatch(setDocumentArraySuccess(false))
         dispatch(setDocumentAddedSuccess(false))
         dispatch(setDocumentRemovedSuccess(false))
+        dispatch(setToggleDocumentSuccess(false))
     }
+
+    // const isDocumentSaved = (recordId) => {
+    //     const doc = isDocumentSaved(recordId);
+    //     return doc && !doc.isRemoved;
+    // };
+
+    const getSavedDoc = (recordId) => {
+        return capturedDocs.find(d => d.documentId === recordId);
+    };
+
+    const isSaved = (recordId) => {
+        return !!getSavedDoc(recordId);
+    };
+
+    const isActiveSaved = (recordId) => {
+        const doc = getSavedDoc(recordId);
+        return doc && !doc.isRemoved;
+    };
+
+
 
     /**
      * initialization
@@ -200,68 +223,115 @@ function ContentListsComponent() {
      * start of function
      */
     const highlightBookmark = (doc, type) => {                
-        if(type !== 'ril'){
-            if(capturedDocs.length !== 0){
-                const recordId = doc.pnx.control.recordid[0]
-                const selectedDocObject = capturedDocs.find(item => item.documentId === recordId);
-                const ids = capturedDocs.map(doc => doc.documentId);        
-                const index = ids.indexOf(recordId); 
+        // if(type !== 'ril'){
+        //     if(capturedDocs.length !== 0){
+        //         const recordId = doc.pnx.control.recordid[0]
+        //         const selectedDocObject = capturedDocs.find(item => item.documentId === recordId);
+        //         const ids = capturedDocs.map(doc => doc.documentId);        
+        //         const index = ids.indexOf(recordId); 
                 
-                console.log(ids)
-                console.log(index)
+        //         console.log(ids)
+        //         console.log(index)
 
-                if(index === -1){
-                    console.log('add ~')
-                    setIsDocSaved(true)
-                    setTempDoc(prev => [...prev, doc.pnx.control.recordid[0]])
-                    addOrRemoveDocuments(doc, undefined)
-                }else{
-                    console.log('remove ~')
-                    setIsDocSaved(false)
-                    setTempDoc(prev => prev.filter(id => id !== recordId));
-                    const updatedDocs = [...capturedDocs];                    
-                    updatedDocs.splice(index, 1);                    
-                    setCapturedDocs(updatedDocs);
+        //         // if(index === -1){
+        //         //     console.log('add ~')
+        //         //     setIsDocSaved(true)
+        //         //     setTempDoc(prev => [...prev, doc.pnx.control.recordid[0]])
+        //         //     addOrRemoveDocuments(doc, undefined)
+        //         // }else{
+        //         //     console.log('remove ~')
+        //         //     setIsDocSaved(false)
+        //         //     setTempDoc(prev => prev.filter(id => id !== recordId));
+        //         //     // const updatedDocs = [...capturedDocs];                    
+        //         //     // updatedDocs.splice(index, 1);                    
+        //         //     // setCapturedDocs(updatedDocs);
+        //         //     const updatedDocs = capturedDocs.map((d) =>
+        //         //     d.documentId === recordId
+        //         //         ? { ...d, isRemoved: true }
+        //         //         : d
+        //         //     );
+
+        //         //     setCapturedDocs(updatedDocs);
+
+
+        //             setCapturedDocs(updatedDocs);
                     
                     
-                    console.log(capturedDocs)
-                    console.log(tempDocs)
-                    addOrRemoveDocuments(doc, selectedDocObject)
-                }
-            }else{
-                setIsDocSaved(true)
-                setTempDoc(prev => [...prev, doc.pnx.control.recordid[0]])
-                addOrRemoveDocuments(doc, undefined)
-                console.log(tempDocs)
-            } 
-        }else{
-            if(capturedRilDocs.length !== 0){
-                const recordId = doc.pnx.control.recordid[0]
-                const selectedDocObject = capturedRilDocs.find(item => item.documentId === recordId);
-                const ids = capturedRilDocs.map(doc => doc.documentId);        
-                const index = ids.indexOf(recordId); 
+        //             console.log(capturedDocs)
+        //             console.log(tempDocs)
+        //             // addOrRemoveDocuments(doc, selectedDocObject)
+        //         }
+        //     }else{
+        //         setIsDocSaved(true)
+        //         setTempDoc(prev => [...prev, doc.pnx.control.recordid[0]])
+        //         addOrRemoveDocuments(doc, undefined)
+        //         console.log(tempDocs)
+        //     } 
+        // }else{
+        //     if(capturedRilDocs.length !== 0){
+        //         const recordId = doc.pnx.control.recordid[0]
+        //         const selectedDocObject = capturedRilDocs.find(item => item.documentId === recordId);
+        //         const ids = capturedRilDocs.map(doc => doc.documentId);        
+        //         const index = ids.indexOf(recordId); 
     
-                if(index === -1){
-                    console.log('add ril ~')   
-                    setTempRils(prev => [...prev, doc.pnx.control.recordid[0]])    
-                    console.log(tempRils, doc.pnx.control.recordid[0])                                 
-                    addOrRemoveRils(doc, undefined)
-                }else{
-                    console.log('remove ril ~', selectedDocObject)
-                    console.log(tempRils)
-                    setTempRils(prev => prev.filter(id => id !== recordId));
-                    const updatedRils = [...capturedRilDocs];                    
-                    updatedRils.splice(index, 1);                    
-                    setCapturedRilDocs(updatedRils);
+        //         if(index === -1){
+        //             console.log('add ril ~')   
+        //             setTempRils(prev => [...prev, doc.pnx.control.recordid[0]])    
+        //             console.log(tempRils, doc.pnx.control.recordid[0])                                 
+        //             addOrRemoveRils(doc, undefined)
+        //         }else{
+        //             console.log('remove ril ~', selectedDocObject)
+        //             console.log(tempRils)
+        //             setTempRils(prev => prev.filter(id => id !== recordId));
+        //             const updatedRils = [...capturedRilDocs];                    
+        //             updatedRils.splice(index, 1);                    
+        //             setCapturedRilDocs(updatedRils);
 
-                    addOrRemoveRils(doc, selectedDocObject)
-                }
-            }else{
-                addOrRemoveRils(doc, undefined)
-            }
-        }        
+        //             addOrRemoveRils(doc, selectedDocObject)
+        //         }
+        //     }else{
+        //         addOrRemoveRils(doc, undefined)
+        //     }
+        // }    
         
+    if (type !== 'ril') {
+        const recordId = doc.pnx.control.recordid[0];
+        const selectedDocObject = capturedDocs.find(item => item.documentId === recordId);
+
+        if (!selectedDocObject) {
+            // FIRST TIME SAVE
+            addOrRemoveDocuments(doc, undefined);
+        } else {
+            // TOGGLE SAVE (soft delete)
+            dispatch(toggleDocumentSave(selectedDocObject._id))
+            .unwrap()
+            .then((updatedDoc) => {
+                // Normalize the updated document
+                const normalizedDoc = {
+                    ...updatedDoc.data,
+                    isRemoved: updatedDoc.data.doc_isRemoved ?? updatedDoc.data.isRemoved ?? false
+                };
+                // update capturedDocs only for the current query
+                setCapturedDocs(prev => prev.map(d => 
+                    d._id === normalizedDoc._id && d.queryId === queryId ? normalizedDoc : d
+                ));
+                
+                // Refetch documents to ensure timeline gets updated
+                const query_temp = {
+                    "workspaceId": workspaceId,
+                    "queryId": queryId
+                };
+                dispatch(getDocumentListsByQueryId(query_temp));
+            })
+            .catch((error) => {
+                console.error("Failed to toggle document save:", error);
+            });
+        }
+        return;
     }
+
+        
+    };
 
     const buildFullDisplayUrl = (doc1) => {
         const baseUrl =
@@ -284,7 +354,7 @@ function ContentListsComponent() {
         console.log('add or remove doc')
         console.log(doc)
         console.log(selectedDoc)
-        console.log('temp_', tempDocs)
+        // console.log('temp_', tempDocs)
 
         if(selectedDoc !== undefined){            
             const DOC_TEMP_REMOVE ={
@@ -327,7 +397,7 @@ function ContentListsComponent() {
 
     const addOrRemoveRils = (doc, selectedDoc) => {
         console.log('add or remove ril')
-        resetDocumentSuccessStatus();
+        // resetDocumentSuccessStatus();
 
         if(selectedDoc !== undefined){                        
             const DOC_TEMP_REMOVE ={
@@ -382,8 +452,9 @@ function ContentListsComponent() {
         console.log('isDocumentArraySuccess_', isDocumentArraySuccess)
         console.log('documents updates_', documents)
         console.log('ril docs are_ ', capturedRilDocs)
-        if(isAddDocumentSuccess || isRemoveDocumentSuccess){
-            console.log('add/remove doc is true')
+        if(isAddDocumentSuccess || isRemoveDocumentSuccess || isToggleDocumentSuccess)
+        {
+            console.log('add/remove/toggle doc is true')
             const query_temp = {
                 "workspaceId": workspaceId,
                 "queryId": queryId
@@ -393,12 +464,17 @@ function ContentListsComponent() {
             
         }
         
-        if(isDocumentArraySuccess){
-            console.log('doc has updated_', documents)            
-            setCapturedDocs(documents)
-            // setCurrentWorkspace(queryDetailObject.workspaceName)           
+        if(isDocumentArraySuccess)
+        {
+            // console.log('doc has updated_', documents)            
+            // setCapturedDocs(documents)
+            // // setCurrentWorkspace(queryDetailObject.workspaceName)  
+        
+            setCapturedDocs(documents.filter(doc => doc.queryId === queryId));
         }
-    }, [ isAddDocumentSuccess, isRemoveDocumentSuccess, isDocumentArraySuccess])
+    }, [ isAddDocumentSuccess, isRemoveDocumentSuccess, isToggleDocumentSuccess, isDocumentArraySuccess])
+
+    
     /**
      * Add or remove documents into workspace & RIL
      * end of function
@@ -516,16 +592,20 @@ function ContentListsComponent() {
                                                         ${styles.has_tooltip}
                                                         ${capturedRilDocs.find(doc => doc.documentId === data.pnx.control.recordid[0]) ? 'pointer-events-none opacity-60' : ''}
                                                         `}>
-                                                        <div onClick={() => highlightBookmark(data, 'workspace')} 
+                                                        <div onClick={() => highlightBookmark(data, 'workspace')}
                                                             className={`cursor-pointer items-center border border-2 rounded-md relative 
-                                                            ${capturedDocs.find(doc => doc.documentId === data.pnx.control.recordid[0]) ? styles.highlighted_bookmark_icon : styles.bookmark_bg} 
-                                                            ${tempDocs.includes(data.pnx.control.recordid[0]) ? styles.highlighted_bookmark_icon : ''}` }>
+                                                            ${isActiveSaved(data.pnx.control.recordid[0]) ? styles.highlighted_bookmark_icon : styles.bookmark_bg}`}>
+
                                                             <p className={`uppercase text-sm text-center font-semibold 
-                                                                ${capturedDocs.find(doc => doc.documentId === data.pnx.control.recordid[0]) ? 'text-white' : 'text-slate-500'}
-                                                                ${tempDocs.includes(data.pnx.control.recordid[0]) ? 'text-white' : 'text-slate-500'}`}>Save</p>
-                                                            <FaBookmark className={`absolute top-0 right-0 ${styles.ril_icon} 
-                                                            ${capturedDocs.find(doc => doc.documentId === data.pnx.control.recordid[0]) ? styles.highlighted_bookmark_icon : ''}
-                                                            ${tempDocs.includes(data.pnx.control.recordid[0]) ? styles.highlighted_bookmark_icon : ''}`} />
+                                                                ${isActiveSaved(data.pnx.control.recordid[0]) ? 'text-white' : 'text-slate-500'}`}>
+                                                                    Save
+                                                            </p>
+
+                                                            <FaBookmark
+                                                                className={`absolute top-0 right-0 ${styles.ril_icon} 
+                                                                ${isActiveSaved(data.pnx.control.recordid[0]) ? styles.highlighted_bookmark_icon  : ''}`}
+                                                            />
+
                                                         </div>
                                                         
                                                         <span className={`rounded text-xs text-center absolute z-10 shadow-lg p-1 bg-gray-100 text-slate-500 -mt-8 ${styles.tooltip_bookmark}`}>
@@ -614,6 +694,7 @@ function ContentListsComponent() {
                                 setPageLoading={setPageLoading}
                                 setShowDetails={setShowDetails}
                                 setDetails={setDetails}
+                                queryId={queryId}
                             />
                     )}
                 </div>

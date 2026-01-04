@@ -41,7 +41,7 @@ const app = express();
 // CORS Setup
 app.use(cors({
     origin: '*', // Replace with your frontend URL in production.
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],              // !!! Patch
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization']
 }));

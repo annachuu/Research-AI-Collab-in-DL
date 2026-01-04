@@ -1,9 +1,3 @@
-.timelineContainer 
-{
-  position: sticky;
-  top: 0;
-}
-
 .noQueries 
 {
   padding: 1rem;
@@ -12,27 +6,25 @@
 .timelineWrapper 
 {
   background: #ffffff;
-  border-left: 2px solid #e2e8f0; 
+  border-left: 5px solid transparent; 
   border-radius: 6px; 
   box-shadow: -2px 0 6px rgba(0, 0, 0, 0.1);
   height: 55vh; 
-  width: 330px;
+  width: 350px;
   display: flex;
   flex-direction: column;
   position: fixed;
   right: 380px; 
   top: 8rem;
   z-index: 15;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .timelineScrollContainer 
 {
   flex: 1;
-  padding: 1.5rem;
   overflow-y: auto;
-  overflow-x: hidden;
+  padding: 1rem;
 }
 
 .timelineScrollContainer::-webkit-scrollbar 
@@ -48,13 +40,13 @@
 
 .timelineScrollContainer::-webkit-scrollbar-thumb 
 {
-  background: rgba(24, 24, 80, 0.9);
+  background: #cbd5e1;
   border-radius: 10px;
 }
 
 .timelineScrollContainer::-webkit-scrollbar-thumb:hover 
 {
-  background:rgba(24, 24, 80, 1);
+  background: grey;
 }
 
 .timelineTitle 
@@ -87,12 +79,10 @@
 
 .queryGroup 
 {
-  background: #f8fafc; 
+  background: transparent; 
   padding: 0.75rem;
   margin-bottom: 0.75rem;
   border-radius: 6px;
-  border-left: 5px solid transparent; 
-  max-width: 100%;
 }
 
 .queryDate 
@@ -106,14 +96,15 @@
 .queryItem 
 {
   background: #f8fafc;
-  padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+  padding: 0.75rem;
   margin-bottom: 0.75rem;
   border-radius: 6px;
-  border-left: 5px solid rgba(24, 24, 80, 0.9);
+  border-left: 5px solid transparent;
   display: flex;
-  flex-direction: column;
+  gap: 0.5rem;
   position: relative;
   cursor: pointer;
+  max-width: 100%;
   word-wrap: break-word;
   overflow-wrap: break-word;
   word-break: break-word;
@@ -124,10 +115,13 @@
   position: relative;
   margin-bottom: 0.75rem;
   padding: 0.75rem;
-  border-left: 5px solid rgba(24, 24, 80, 0.9);
-  text-decoration: line-through;
+  border-left: 5px solid transparent;
   border-radius: 6px;
   background: #f8fafc;
+  display: flex;
+  gap: 0.5rem;
+  text-decoration: line-through;
+  opacity: 0.5;
 }
 
 .queryItemTime 
@@ -138,15 +132,6 @@
   margin-top: 0.25rem;
 }
 
-.queryItemIcon 
-{
-  position: absolute;
-  margin-right: 10px;
-  left: 10px;
-  top: 10px;
-  cursor: pointer;
-}
-
 .queryBox 
 {
   display: flex;
@@ -154,7 +139,6 @@
   align-items: center;
   padding: 0.5rem;
   border-radius: 4px;
-  background: #f8fafc;
   border: 1px solid #cbd5e1;
   cursor: pointer;
 }
@@ -171,4 +155,69 @@
   color: grey;
   text-align: right;
   margin-left: 0.5rem;
+}
+
+.queryItemContent
+{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.queryItemHeader
+{
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.3rem;
+}
+
+.queryItemIcon
+{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.queryItemUsername
+{
+  font-weight: bold;
+}
+
+.queryItemUsername span.savedText
+{
+  font-size: 12px;
+  font-weight: normal;
+  color: grey;
+  margin-left: 0.25rem;
+}
+
+.queryItemTitle
+{
+  text-align: center;
+  font-weight: 500;
+  cursor: pointer;
+  word-break: break-word;
+}
+
+.queryItemTitleRemoved
+{
+  text-align: center;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.magnifyingRow
+{
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1rem;
+  padding-bottom: 0.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  gap: 0.75rem;
+  flex-shrink: 0;
 }
