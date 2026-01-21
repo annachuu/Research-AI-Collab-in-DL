@@ -283,7 +283,7 @@ function WorkspaceDetails() {
                         <div className={styles.workspaceContentTimelineContainer}>
                         {/* Left Workspace */}
                         <div className={styles.workspaceLeft}>
-                      <h3 className="text-lg text-slate-500 mb-6 mt-6 font-bold">Workspace: {singleWorkspace.workspace?.name}</h3>
+                        <h3 className="text-lg text-slate-500 mb-6 mt-6 font-bold">Workspace: {singleWorkspace.workspace?.name}</h3>
                             {
                                 isWorkpsaceDetailSuccess && <>
                                     <div className='flex mb-4'>

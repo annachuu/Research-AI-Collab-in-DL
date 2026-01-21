@@ -107,11 +107,14 @@ export default function UserTimeline({ queries, setPageLoading, setShowDetails, 
   // Fetch chat messages to get all users for consistent color assignment
   useEffect(() => {
     async function fetchChatMessages() {
-      try {
+      try 
+      {
         const chatApiUrl = API_URL + 'chat';
         const res = await axios.get(chatApiUrl);
         setChatMessages(res.data || []);
-      } catch (error) {
+      } 
+      catch (error) 
+      {
         console.error("Failed to fetch chat messages for color assignment: ", error);
       }
     }
@@ -141,13 +144,17 @@ export default function UserTimeline({ queries, setPageLoading, setShowDetails, 
         // Log the breakdown by each user
         const byUser = documentsArray.reduce((acc, d) => {
           const username = d.userId?.username || 'Unknown';
-          if (!acc[username]) {
+          if (!acc[username]) 
+          {
             acc[username] = { total: 0, active: 0, removed: 0 };
           }
           acc[username].total++;
-          if (d.doc_isRemoved) {
+          if (d.doc_isRemoved) 
+          {
             acc[username].removed++;
-          } else {
+          } 
+          else 
+          {
             acc[username].active++;
           }
           return acc;
@@ -218,7 +225,8 @@ export default function UserTimeline({ queries, setPageLoading, setShowDetails, 
   const documentsByDate = {};
   allDocuments.forEach((doc) => {
     const dateKey = formatDate(doc.createdAt);
-    if (!documentsByDate[dateKey]) {
+    if (!documentsByDate[dateKey]) 
+    {
       documentsByDate[dateKey] = [];
     }
     documentsByDate[dateKey].push(doc);
@@ -236,7 +244,7 @@ export default function UserTimeline({ queries, setPageLoading, setShowDetails, 
     const dateA = documentsByDate[a][0]?.createdAt;
     const dateB = documentsByDate[b][0]?.createdAt;
     if (!dateA || !dateB) return 0;
-    return new Date(dateB) - new Date(dateA);
+      return new Date(dateB) - new Date(dateA);
   });
 
   return (
@@ -278,7 +286,6 @@ export default function UserTimeline({ queries, setPageLoading, setShowDetails, 
                           style={{ color: userColor }}
                         >
                           {username}
-                          <span className={styles.savedText}> has saved</span>
                         </span>
                       </div>
 

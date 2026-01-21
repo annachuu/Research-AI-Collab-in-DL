@@ -184,13 +184,6 @@
   font-weight: bold;
 }
 
-.queryItemUsername span.savedText
-{
-  font-size: 12px;
-  font-weight: normal;
-  color: grey;
-  margin-left: 0.25rem;
-}
 
 .queryItemTitle
 {
