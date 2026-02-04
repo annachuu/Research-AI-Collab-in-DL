@@ -704,6 +704,7 @@ function ContentListsComponent() {
                     <ChatComponent 
                         currentUsername={user?.data?.username || ''}
                         currentUserIndex={0}
+                        documents={contents.docs || []}
                     />
                 </div>
             </div>

@@ -204,7 +204,7 @@ export default function UserTimeline({ queries, setPageLoading, setShowDetails, 
      const getDetails = (controlNumber, setPageLoading, setShowDetails, setDetails) => {
          if (setPageLoading) setPageLoading(true);
          // This function should fetch document details
-         // For now, we'll just log it - integrate with existing document detail logic
+         // integrate with existing document detail logic
          console.log("Getting details for:", controlNumber);
          if (setShowDetails) setShowDetails(true);
          if (setDetails) setDetails({ controlNumber });
