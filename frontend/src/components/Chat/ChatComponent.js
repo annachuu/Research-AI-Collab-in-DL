@@ -98,12 +98,78 @@ const formatDocumentsForAI = (documents) => {
     }
 };
 
-function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [] })
+// Helper function to format workspace history (queries and documents) for context for the AI
+const formatWorkspaceHistoryForAI = (workspaceHistory) => {
+    if (!workspaceHistory || !Array.isArray(workspaceHistory.queries) || workspaceHistory.queries.length === 0) 
+    {
+        return "No workspace history available.";
+    }
+
+    try 
+    {
+        // for the workspace history
+        const workspaceName = workspaceHistory.workspaceName || workspaceHistory.name || 'Unknown Workspace';
+        let historyText = `WORKSPACE HISTORY: "${workspaceName}"\n`;
+        historyText += `Total Queries: ${workspaceHistory.queries.length}\n\n`;
+
+        // for the queries in the workspace history
+        return workspaceHistory.queries.map((query, queryIndex) => {
+            const queryText = query.query || query.queryName || 'Untitled Query';
+            const queryDate = query.createdAt ? new Date(query.createdAt).toLocaleDateString() : 'Unknown date';
+            const documents = Array.isArray(query.documents) ? query.documents : [];
+            
+            // Separate saved and deleted documents
+            const savedDocs = documents.filter(doc => !doc.doc_isRemoved && !doc.isRemoved);
+            const deletedDocs = documents.filter(doc => doc.doc_isRemoved || doc.isRemoved);
+            
+            let queryHistory = `Query ${queryIndex + 1}: "${queryText}" (Created: ${queryDate})\n`;
+            queryHistory += `  - Saved Documents: ${savedDocs.length}\n`;
+            queryHistory += `  - Deleted/Removed Documents: ${deletedDocs.length}\n`;
+            
+            // Include details of saved documents
+            if (savedDocs.length > 0) {
+                queryHistory += `  Saved Documents Details:\n`;
+                savedDocs.forEach((doc, docIndex) => {
+                    const title = doc.title || 'Untitled';
+                    const authors = Array.isArray(doc.doc_authors) 
+                        ? doc.doc_authors.join(', ') 
+                        : (doc.doc_authors || 'Unknown authors');
+                    const abstract = doc.doc_abstract || 'No abstract available';
+                    queryHistory += `    ${docIndex + 1}. "${title}" by ${authors}\n`;
+                    queryHistory += `       Abstract: ${abstract.substring(0, 150)}${abstract.length > 150 ? '...' : ''}\n`;
+                });
+            }
+            
+            // Include details of deleted documents (for context on what was removed)
+            if (deletedDocs.length > 0) {
+                queryHistory += `  Deleted Documents (for reference):\n`;
+                deletedDocs.forEach((doc, docIndex) => {
+                    const title = doc.title || 'Untitled';
+                    const authors = Array.isArray(doc.doc_authors) 
+                        ? doc.doc_authors.join(', ') 
+                        : (doc.doc_authors || 'Unknown authors');
+                    queryHistory += `    ${docIndex + 1}. "${title}" by ${authors} [DELETED]\n`;
+                });
+            }
+            
+            return queryHistory;
+        }).join('\n\n');
+    } 
+    catch (error) 
+    {
+        console.error("Error formatting workspace history for AI:", error);
+        return "Error formatting workspace history.";
+    }
+};
+
+function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [], workspaceHistory = null })
 {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [isAIMode, setIsAIMode] = useState(false);
     const [isAILoading, setIsAILoading] = useState(false);
+    const [selectedDocuments, setSelectedDocuments] = useState([]);
+    const [isDragOverDropZone, setIsDragOverDropZone] = useState(false);
     const messagesEndRef = useRef(null);
     const messagesBoxRef = useRef(null);
     const previousMessagesLengthRef = useRef(0);
@@ -228,6 +294,107 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [] 
             setIsAIMode(true);
         } else if (trimmedValue === '' || !trimmedValue.startsWith('@ai')) {
             setIsAIMode(false);
+            // to clear any selected documents when leaving AI mode
+            setSelectedDocuments([]);
+        }
+    };
+
+    const findDocumentByRecordId = (recordId) => 
+    {
+        if (!recordId || !Array.isArray(documents)) return null;
+        return documents.find((doc) => 
+        {
+            const id = doc?.pnx?.control?.recordid;             // note: chaining is used here to access the recordid property of the document
+            if (Array.isArray(id)) 
+            {
+                return id[0] === recordId;
+            }
+            return id === recordId;
+        });
+    };
+
+    const addSelectedDocument = (doc) => 
+    {
+        if (!doc) return;
+        const recordId = Array.isArray(doc?.pnx?.control?.recordid) 
+            ? doc.pnx.control.recordid[0] 
+            : doc?.pnx?.control?.recordid;
+        if (!recordId) return;
+
+        setSelectedDocuments((prev) => 
+        {
+            // Avoid duplicates
+            const alreadyExists = prev.some((item) => 
+            {
+                const existingId = Array.isArray(item?.pnx?.control?.recordid) 
+                    ? item.pnx.control.recordid[0] 
+                    : item?.pnx?.control?.recordid;
+                return existingId === recordId;
+            });
+            if (alreadyExists) return prev;
+            return [...prev, doc];
+        });
+    };
+
+    const handleDragOver = (event) => 
+    {
+        // drag & drop only when in AI mode
+        if (!isAIMode) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "copy";
+        setIsDragOverDropZone(true);
+    };
+
+    const handleDragLeave = (event) => 
+    {
+        event.preventDefault();
+        setIsDragOverDropZone(false);
+    };
+
+    const handleDrop = (event) => 
+    {
+        if (!isAIMode) return;
+        event.preventDefault();
+        event.stopPropagation();
+        setIsDragOverDropZone(false);
+
+        try 
+        {
+            const recordId = event.dataTransfer.getData('application/x-search-doc-recordid');
+            if (recordId) 
+            {
+                const doc = findDocumentByRecordId(recordId);
+                if (doc) 
+                {
+                    addSelectedDocument(doc);
+                    return;
+                }
+            }
+
+            const jsonPayload = event.dataTransfer.getData('application/json');     // note: payload of the document that is being dragged
+            if (jsonPayload) 
+            {
+                try 
+                {
+                    const parsed = JSON.parse(jsonPayload);
+                    if (parsed && parsed.type === 'search-doc' && parsed.payload?.recordId) 
+                    {
+                        const doc = findDocumentByRecordId(parsed.payload.recordId);
+                        if (doc) 
+                        {
+                            addSelectedDocument(doc);
+                        }
+                    }
+                } 
+                catch (jsonError) 
+                {
+                    console.error("Failed to parse dropped document JSON:", jsonError);
+                }
+            }
+        } 
+        catch (error) 
+        {
+            console.error("Error handling document drop:", error);
         }
     };
 
@@ -294,14 +461,48 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [] 
             {
                 // Ensure documents is an array
                 const safeDocuments = Array.isArray(documents) ? documents : [];
+
+                // Prefer explicitly selected documents (from drag-and-drop) when available
+                const docsForAI = Array.isArray(selectedDocuments) && selectedDocuments.length > 0
+                    ? selectedDocuments
+                    : safeDocuments;
                 
                 // Format documents for context
-                const documentsContext = formatDocumentsForAI(safeDocuments);
+                const documentsContext = formatDocumentsForAI(docsForAI);
+                
+                // Format workspace history if available
+                const workspaceHistoryContext = workspaceHistory 
+                    ? formatWorkspaceHistoryForAI(workspaceHistory)
+                    : '';
                 
                 // the full prompt with context
-                const fullPrompt = `You are an AI assistant helping users. Below are the search results (documents) from this current page:
-                    ${documentsContext}
-                    User request: ${aiPrompt}`;
+                let fullPrompt = `You are an AI assistant helping users with research and document analysis. `;
+                fullPrompt += `You have the ability to help with query reformulation based on workspace history.\n\n`;
+                
+                // Add workspace history if available
+                if (workspaceHistoryContext) {
+                    fullPrompt += `WORKSPACE AND QUERY HISTORY:\n`;
+                    fullPrompt += `This workspace contains a history of previous search queries and documents (both saved and deleted). `;
+                    fullPrompt += `Use this history to understand the user's research patterns and help reformulate queries if needed.\n\n`;
+                    fullPrompt += `${workspaceHistoryContext}\n\n`;
+                }
+                
+                // Add current search results
+                fullPrompt += `CURRENT SEARCH RESULTS (documents from this page):\n`;
+                fullPrompt += `${documentsContext}\n\n`;
+                
+                // Add user request
+                fullPrompt += `USER REQUEST: ${aiPrompt}\n\n`;
+                
+                // extra prompts for more context
+                // fullPrompt += `INSTRUCTIONS:\n`;
+                // fullPrompt += `- Analyze the user's request and the provided context (workspace history and current search results).\n`;
+                // fullPrompt += `- If the user asks about query reformulation, suggest improved search queries based on:\n`;
+                // fullPrompt += `  * Previous queries in the workspace history\n`;
+                // fullPrompt += `  * Documents that were saved vs deleted (to understand what was relevant)\n`;
+                // fullPrompt += `  * The current search results and user's specific question\n`;
+                // fullPrompt += `- Provide specific, actionable query reformulation suggestions when relevant.\n`;
+                // fullPrompt += `- Answer questions about the documents using the title, authors, and descriptions provided.`;
 
                 // Calling Puter AI - using the API format from tutorial
                 // puter.ai.chat() takes message as first param, options as second param
@@ -377,6 +578,8 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [] 
                 setIsAILoading(false);
                 setInput("");
                 setIsAIMode(false);
+                
+                setSelectedDocuments([]);       // Clear selected documents after an AI interaction completes
             }
             return;
         }
@@ -528,8 +731,27 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [] 
                 })})()}
                 <div ref={messagesEndRef} />
             </div>
+            
+            <div 
+                className={styles.inputRow}
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+            >
+                {isAIMode && (
+                    <div 
+                        className={`${styles.dropZone} ${isDragOverDropZone ? styles.dropZoneActive : ''}`}
+                    >
+                        <div className={styles.dropZoneSymbol}>
+                            
+                        </div>
+                        <span className={styles.dropZoneText}>
+                            Drag documents here
+                        </span>
+                    </div>
+                )}
 
-            <div className={styles.inputRow}>
                 <input
                     type="text"
                     className={styles.input}
@@ -548,6 +770,33 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [] 
                     {isAILoading ? 'Thinking...' : isAIMode ? 'Ask AI' : 'Send'}
                 </button>
             </div>
+            {isAIMode && selectedDocuments.length > 0 && (
+                <div className={styles.selectedDocsRow}>
+                    {/* loop through the selected documents and display */}
+                    {selectedDocuments.map((doc, index) => {
+                        const title = doc?.pnx?.display?.title?.[0] || doc?.pnx?.display?.title || 'Untitled';
+                        // IF au exists, if is array, join with commas ELSE use it directly. ELSE IF addau exists, do  same thing. ELSE use "Unknown authors"
+                        // IF array, then join, IF string, then use it directly
+                        const authors = doc?.pnx?.addata?.au 
+                            ? (Array.isArray(doc.pnx.addata.au) ? doc.pnx.addata.au.join(', ') : doc.pnx.addata.au)
+                            : (doc?.pnx?.addata?.addau 
+                                ? (Array.isArray(doc.pnx.addata.addau) ? doc.pnx.addata.addau.join(', ') : doc.pnx.addata.addau)
+                                : 'Unknown authors');
+
+                        return (
+                            <div key={index} className={styles.selectedDocChip}>
+                                <div className={styles.selectedDocAvatar}>
+                                    
+                                </div>
+                                <div className={styles.selectedDocInfo}>
+                                    <div className={styles.selectedDocTitle}>{title}</div>
+                                    <div className={styles.selectedDocAuthors}>{authors}</div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
             {isAIMode && !isPuterAIAvailable && (
                 <div style={{ padding: '0.5rem', fontSize: '0.75rem', color: '#e31a1c' }}>
                     AI is not available. Please ensure Puter AI is loaded.

@@ -13,7 +13,7 @@ import ChatComponent from "../../components/Chat/ChatComponent";
 import UserTimeline from "../../components/History/timeline";
 
 import { getSearchResultLists, resetSearchResults, getDocumentThumbnailUrl } from '../../features/contents/contentResultsSlice';
-import { createQuery, getQueryDetails, resetWorkspaceData } from "../../features/workspace/workspaceSlice";
+import { createQuery, getQueryDetails, resetWorkspaceData, getWorkspaceDetails } from "../../features/workspace/workspaceSlice";
 import {
     saveDocumentToWorkspace, 
     removeDocumentFromWorkspace, 
@@ -38,7 +38,7 @@ function ContentListsComponent() {
     const scrollToTopRef = useRef();
 
     const {contents, isSERPLoading,  isNewSearchKeyword, isLoading, isError, message, thumbnail} = useSelector((state) => state.content)
-    const { isQueryDetailSuccess, queryDetailObject, singleQuery, quries, isQueryCreateSuccess} = useSelector((state) => state.workspace);
+    const { isQueryDetailSuccess, queryDetailObject, singleQuery, quries, isQueryCreateSuccess, singleWorkspace, isWorkpsaceDetailSuccess} = useSelector((state) => state.workspace);
     const {documents, isDocumentArraySuccess, isAddDocumentSuccess, isRemoveDocumentSuccess, isToggleDocumentSuccess} = useSelector((state) => state.document);
     const { ril_documents, isRilArraySuccess, isAddToRilSuccess, isRemoveFromRilSuccess } = useSelector((state) => state.ril);
     
@@ -49,6 +49,7 @@ function ContentListsComponent() {
     const [currentWorkspace, setCurrentWorkspace] = useState("");
     const [capturedDocs, setCapturedDocs] = useState([])
     const [capturedRilDocs, setCapturedRilDocs] = useState([])
+    const [workspaceHistory, setWorkspaceHistory] = useState(null)
     
     // const [isDocSaved, setIsDocSaved] = useState(false)
     // const [tempDocs, setTempDoc] = useState([])
@@ -135,6 +136,11 @@ function ContentListsComponent() {
             }
             
             dispatch(getQueryDetails(query_temp))
+            
+            // Fetch workspace details for history
+            if (workspaceId) {
+                dispatch(getWorkspaceDetails({ workspaceId }))
+            }
         }                       
         
         return() => {
@@ -144,7 +150,7 @@ function ContentListsComponent() {
             dispatch(resetRilData())
             resetDocumentSuccessStatus()
         }
-    }, [message, dispatch, QUERY_STRING]) 
+    }, [message, dispatch, QUERY_STRING, workspaceId]) 
     
 
     /**
@@ -175,7 +181,31 @@ function ContentListsComponent() {
                 setTempRils(documentIds);
             }
         }        
-    }, [isRilArraySuccess]) 
+    }, [isRilArraySuccess])
+    
+    // Fetch and set workspace history when workspace details are loaded
+    useEffect(() => {
+        if (isWorkpsaceDetailSuccess && singleWorkspace) {
+            console.log('Workspace details loaded:', singleWorkspace);
+            // singleWorkspace contains: workspace, queries (with documents), querySize, docSize
+            if (singleWorkspace.queries && Array.isArray(singleWorkspace.queries)) {
+                // Filter queries to only include those from the current workspace
+                const currentWorkspaceQueries = singleWorkspace.queries.filter(query => {
+                    const queryWorkspaceId = query.workspaceId?.toString ? query.workspaceId.toString() : query.workspaceId;
+                    const currentWorkspaceIdStr = workspaceId?.toString ? workspaceId.toString() : workspaceId;
+                    return queryWorkspaceId === currentWorkspaceIdStr;
+                });
+                
+                setWorkspaceHistory({
+                    workspaceName: singleWorkspace.workspace?.name || currentWorkspace || CURRENT_WORKSPACENAME,
+                    queries: currentWorkspaceQueries.map(query => ({
+                        ...query,
+                        documents: query.documents || []
+                    }))
+                });
+            }
+        }
+    }, [isWorkpsaceDetailSuccess, singleWorkspace, currentWorkspace, CURRENT_WORKSPACENAME, workspaceId]) 
     
 
     /**
@@ -217,6 +247,43 @@ function ContentListsComponent() {
      * end of keyword and query create function
      */
  
+
+    /**
+     * Add or remove documents into workspace & RIL
+     * start of function
+     */
+    const handleDocDragStart = (event, doc) => {
+        try {
+            const recordId = doc?.pnx?.control?.recordid?.[0];
+            if (!recordId) return;
+
+            event.dataTransfer.effectAllowed = 'copy';
+            event.dataTransfer.setData('application/x-search-doc-recordid', recordId);
+
+            // Provide a minimal JSON payload as a fallback
+            const title = doc?.pnx?.display?.title?.[0] || doc?.pnx?.display?.title || 'Untitled';
+            const authors = doc?.pnx?.addata?.au 
+                ? (Array.isArray(doc.pnx.addata.au) ? doc.pnx.addata.au.join(', ') : doc.pnx.addata.au)
+                : (doc?.pnx?.addata?.addau 
+                    ? (Array.isArray(doc.pnx.addata.addau) ? doc.pnx.addata.addau.join(', ') : doc.pnx.addata.addau)
+                    : 'Unknown authors');
+            const abstract = doc?.pnx?.addata?.abstract?.[0] || doc?.pnx?.addata?.abstract || '';
+
+            const payload = {
+                type: 'search-doc',
+                payload: {
+                    recordId,
+                    title,
+                    authors,
+                    abstract
+                }
+            };
+
+            event.dataTransfer.setData('application/json', JSON.stringify(payload));
+        } catch (error) {
+            console.error("Error preparing document for drag:", error);
+        }
+    };
 
     /**
      * Add or remove documents into workspace & RIL
@@ -565,7 +632,11 @@ function ContentListsComponent() {
                                     <div key={data.pnx.control.recordid[0]} className={`flex ${styles.cmb_4}`}>
                                         
                                         <div>
-                                            <div className={`bg-slate-50 border flex ${styles.book_cover}`}>  
+                                            <div 
+                                                className={`bg-slate-50 border flex ${styles.book_cover}`}
+                                                draggable
+                                                onDragStart={(event) => handleDocDragStart(event, data)}
+                                            >  
                                                 {data.pnx.addata.isbn !== undefined ?
                                                     <>       
                                                         {/* X_X                                                          */}
@@ -705,6 +776,7 @@ function ContentListsComponent() {
                         currentUsername={user?.data?.username || ''}
                         currentUserIndex={0}
                         documents={contents.docs || []}
+                        workspaceHistory={workspaceHistory}
                     />
                 </div>
             </div>
