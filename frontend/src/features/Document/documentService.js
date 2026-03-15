@@ -41,9 +41,7 @@ const toggleDocumentSave = async (documentId, token) => {
     }
   };
   const response = await axios.patch(
-    API + 'document/toggle/' + documentId,
-    {},
-    config
+    API + 'document/toggle/' + documentId, {}, config
   );
 
   return response.data;

@@ -103,7 +103,13 @@ const getColorIndexForUsername = (username, uniqueUsernamesSorted = []) => {
     return 0;
 };
 
-export default function UserTimeline({ queries, setPageLoading, setShowDetails, setDetails }) 
+function normalizeQueryText(str) 
+{
+    if (str == null || typeof str !== 'string') return '';
+    return str.trim().toLowerCase();
+}
+
+export default function UserTimeline({ queries, setPageLoading, setShowDetails, setDetails, queryText }) 
 {
     const navigate = useNavigate();
     const [removedDocs, setRemovedDocs] = useState({});
@@ -111,27 +117,37 @@ export default function UserTimeline({ queries, setPageLoading, setShowDetails, 
     const [loadingDocuments, setLoadingDocuments] = useState(false);
     const [chatMessages, setChatMessages] = useState([]);
     const workspaceId = queries?.[0]?.workspaceId;
-    // const [hasSelectedTopic, setHasSelectedTopic] = useState(false);
+    const topic = queryText ?? queries?.[0]?.query ?? '';
 
-    // Fetch chat messages to get all users for consistent color assignment
+    // Fetch chat messages for this topic (for color assignment). Only when workspaceId + queryText are present.
     useEffect(() => {
+        const normalized = normalizeQueryText(topic);
+        if (!workspaceId || !normalized) 
+        {
+            setChatMessages([]);
+            return;
+        }
+
         async function fetchChatMessages() {
             try 
             {
                 const chatApiUrl = API_URL + 'chat';
-                const res = await axios.get(chatApiUrl);
-                setChatMessages(res.data || []);
+                const res = await axios.get(chatApiUrl, {
+                    params: { workspaceId, queryText: normalized }
+                });
+                setChatMessages(Array.isArray(res.data) ? res.data : []);
             } 
             catch (error) 
             {
                 console.error("Failed to fetch chat messages for color assignment: ", error);
+                setChatMessages([]);
             }
         }
-        
+
         fetchChatMessages();
         const interval = setInterval(fetchChatMessages, 3000);
         return () => clearInterval(interval);
-    }, []);
+    }, [workspaceId, topic]);
 
     // Fetch documents from all users for each query
     useEffect(() => {

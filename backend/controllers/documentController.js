@@ -11,7 +11,8 @@ const Workspace = require('../models/workspaceModel')
  */
 const addDocumentToQuery = async (req, res) => {
     console.log('... add doc')
-    try {
+    try 
+    {
         const { title, doc_type, doc_authors, doc_abstract, doc_date, documentId, userId, workspaceId, queryId, doc_thumbnail, thumbnail_type, doc_partof, doc_peerreview, doc_openaccess, doc_fulltext,doc_url  } = req.body;
         
         // const query = await Query.findById(queryId);
@@ -69,7 +70,9 @@ const addDocumentToQuery = async (req, res) => {
 
         res.status(201).json({ success: true, data: newDocument });
 
-    } catch (error) {
+    } 
+    catch (error) 
+    {
         console.log(error)
         res.status(500).json({ success: false, error: error.message });
     }
@@ -96,7 +99,8 @@ const addDocumentToQuery = async (req, res) => {
  */
 const removeDocumentFromQuery = async (req, res) => {    
     const { docId } = req.params;
-    try {        
+    try 
+    {        
         // const quries = await Query.findById(queryId);
         // console.log("quries", quries)
         // if (!quries) {
@@ -121,7 +125,9 @@ const removeDocumentFromQuery = async (req, res) => {
         res.status(200).json({ success: true });
 
         // res.status(201).json({ success: true, data: quries });
-    } catch (error) {
+    } 
+    catch (error) 
+    {
         return res.status(500).json({ success: false, error: error.message });
     }
 };
@@ -157,6 +163,7 @@ const toggleDocumentSave = asyncHandler(async (req, res) => {
  * @route GET /api/workspaces/document/all
  * @return {array} - Array of all documents with user information
  */
+// note: getAllDocuments is used to get all documents from all users
 const getAllDocuments = asyncHandler(async (req, res) => {
     try 
     {
@@ -179,6 +186,8 @@ const getAllDocuments = asyncHandler(async (req, res) => {
  * @route GET /api/workspaces/document/query/:queryId
  * @return {array} - Array of documents for queries with the same query topic with user information
  */
+
+// note: getDocumentsByQueryId is used to get all documents for queries with the same query topic from all users
 const getDocumentsByQueryId = asyncHandler(async (req, res) => {
     try 
     {

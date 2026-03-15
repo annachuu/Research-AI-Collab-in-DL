@@ -1,8 +1,8 @@
 import React, { useEffect } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 
-import { getAllWorkspaces, resetWorkspaceData } from '../../features/workspace/workspaceSlice';
+import { getAllWorkspaces } from '../../features/workspace/workspaceSlice';
 import styles from './Home.module.css';
 
 import Header from '../../components/Header/Header';
@@ -12,35 +12,32 @@ import Loading from "../../components/Loading/Loading";
 
 function DashboardComponent() {
     const navigate = useNavigate();
-    const dispatch = useDispatch();    
-    const {user} = useSelector((state) => state.auth);
-    const {workspaces, singleWorkspace, isLoading, isError, message} = useSelector((state) => state.workspace);     
-    
+    const location = useLocation();
+    const dispatch = useDispatch();
+    const { user } = useSelector((state) => state.auth);
+    const { workspaces, isLoading, isError, message } = useSelector((state) => state.workspace);
 
+    // Redirect to login if not authenticated
     useEffect(() => {
-        if(isError) {
-            console.log(message)
+        if (!user?.data) 
+        {
+            navigate('/login');
+            return;
         }
+    }, [user?.data, navigate]);
 
-        if(!user || !user.data){
-            navigate('/login')
-        }else{
-            const user_data = {
-                userId: user.data._id
-            }
-            if(!isError){
-                dispatch(getAllWorkspaces(user_data))
-            }
-        }             
-
-        return() => {
-            dispatch(resetWorkspaceData())
-        }
-    }, [navigate, isError, message, dispatch, singleWorkspace, user])
-
+    // Fetch workspaces when dashboard is shown and user is logged in (mount, return from other page, etc.)
     useEffect(() => {
-        // localStorage.removeItem('query')
-    }, [workspaces])
+        if (isError) 
+        {
+            console.log(message);
+        }
+        if (!user?.data?._id) 
+        {
+            return;
+        }
+        dispatch(getAllWorkspaces({ userId: user.data._id }));
+    }, [user?.data?._id, location.pathname, dispatch]);
 
     return (
         <>

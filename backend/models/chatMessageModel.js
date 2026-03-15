@@ -1,26 +1,47 @@
 const mongoose = require('mongoose');
 
-// Schema for Chat
-const ChatMessageSchema = new mongoose.Schema
-(
+// Normalize search topic for channel key: same topic = same chat across users
+function normalizeQueryText(str) {
+    if (str == null || typeof str !== 'string') return '';
+    return str.trim().toLowerCase();
+}
+
+// Schema for chat box - scoped by workspace + search topic (queryText) so everyone searching the same topic sees the same thread
+const ChatMessageSchema = new mongoose.Schema(
     {
-        username:
-        {
+        workspaceId: {
+            type: String,
+            required: true,
+            index: true
+        },
+        // Normalized search keyword (e.g. "design") — channel key so same topic = same chat
+        queryText: {
+            type: String,
+            required: true,
+            index: true
+        },
+        queryId: {
+            type: String,
+            default: null,
+            index: true
+        },
+        username: {
             type: String,
             required: true
         },
-        userIndex:
-        {
+        userIndex: {
             type: Number,
-            required: true,
+            required: true
         },
-        text:
-        {
+        text: {
             type: String,
             required: true
         }
     },
-    {timestamps: true}
+    { timestamps: true }
 );
 
+ChatMessageSchema.index({ workspaceId: 1, queryText: 1, createdAt: 1 });
+
 module.exports = mongoose.model("ChatMessage", ChatMessageSchema);
+module.exports.normalizeQueryText = normalizeQueryText;

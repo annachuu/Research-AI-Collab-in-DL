@@ -143,13 +143,12 @@ function ContentListsComponent() {
             }
         }                       
         
-        return() => {
-            dispatch(resetSearchResults())
-            dispatch(resetDocument())
-            dispatch(resetWorkspaceData())
-            dispatch(resetRilData())
-            resetDocumentSuccessStatus()
-        }
+        return () => {
+            dispatch(resetSearchResults());
+            dispatch(resetDocument());
+            dispatch(resetRilData());
+            resetDocumentSuccessStatus();
+        };
     }, [message, dispatch, QUERY_STRING, workspaceId]) 
     
 
@@ -760,12 +759,14 @@ function ContentListsComponent() {
                 <div className="leftPanel">
                     {/* Timeline Sidebar */}
                     {isQueryDetailSuccess && timelineQueries.length > 0 && (
-                            <UserTimeline 
+                            <UserTimeline
                                 queries={timelineQueries}
                                 setPageLoading={setPageLoading}
                                 setShowDetails={setShowDetails}
                                 setDetails={setDetails}
                                 queryId={queryId}
+                                workspaceId={workspaceId}
+                                queryText={QUERY_STRING || queryDetailObject?.query || ''}
                             />
                     )}
                 </div>
@@ -777,6 +778,10 @@ function ContentListsComponent() {
                         currentUserIndex={0}
                         documents={contents.docs || []}
                         workspaceHistory={workspaceHistory}
+                        workspaceId={workspaceId}
+                        queryId={queryId}
+                        queryText={QUERY_STRING || queryDetailObject?.query || ''}
+                        currentUserId={user?.data?._id || null}
                     />
                 </div>
             </div>

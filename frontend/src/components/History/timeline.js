@@ -99,30 +99,41 @@ const getColorIndexForUsername = (username, uniqueUsernamesSorted = []) => {
     return 0;
 };
 
-export default function UserTimeline({ queries, setPageLoading, setShowDetails, setDetails, queryId }) {
+function normalizeQueryText(str) {
+  if (str == null || typeof str !== 'string') return '';
+  return str.trim().toLowerCase();
+}
+
+export default function UserTimeline({ queries, setPageLoading, setShowDetails, setDetails, queryId, workspaceId, queryText }) {
   const navigate = useNavigate();
   const [allDocuments, setAllDocuments] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
 
-  // Fetch chat messages to get all users for consistent color assignment
+  // Fetch chat messages for this topic (for color assignment). Only when workspaceId + queryText are present.
   useEffect(() => {
+    const normalized = normalizeQueryText(queryText);
+    if (!workspaceId || !normalized) {
+      setChatMessages([]);
+      return;
+    }
+
     async function fetchChatMessages() {
-      try 
-      {
+      try {
         const chatApiUrl = API_URL + 'chat';
-        const res = await axios.get(chatApiUrl);
-        setChatMessages(res.data || []);
-      } 
-      catch (error) 
-      {
+        const res = await axios.get(chatApiUrl, {
+          params: { workspaceId, queryText: normalized }
+        });
+        setChatMessages(Array.isArray(res.data) ? res.data : []);
+      } catch (error) {
         console.error("Failed to fetch chat messages for color assignment: ", error);
+        setChatMessages([]);
       }
     }
-    
+
     fetchChatMessages();
     const interval = setInterval(fetchChatMessages, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [workspaceId, queryText]);
 
   // Fetch documents for the current query from all users
   useEffect(() => {

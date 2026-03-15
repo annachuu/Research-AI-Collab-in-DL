@@ -162,9 +162,17 @@ export const saveChatMessage = async (msg) =>
     return axios.post("/api/chat", msg);
 };
 
-export const getAllChatMessages = async () =>
+/** @param {{ workspaceId: string, queryText: string }} params - required for chat API */
+export const getAllChatMessages = async (params = {}) =>
 {
-    return axios.get("/api/chat");
+    const { workspaceId, queryText } = params;
+    if (!workspaceId || queryText == null) 
+    {
+        return Promise.resolve([]);
+    }
+    const normalized = typeof queryText === 'string' ? queryText.trim().toLowerCase() : '';
+    if (!normalized) return Promise.resolve([]);
+    return axios.get("/api/chat", { params: { workspaceId, queryText: normalized } });
 };
 
 const contentResultsService = {

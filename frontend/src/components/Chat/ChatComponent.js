@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import CloseIcon from "@mui/icons-material/Close";
 import styles from "./Chat.module.css";
 import axios from 'axios'
 
@@ -16,7 +17,7 @@ const User_Colours =
     "#6a3d9a"   // 10th user
 ];
 
-const backend_url = "http://localhost:5006/api/chat";
+const chat_backend_url = "http://localhost:5006/api/chat";
 
 // Ensuring each username gets a unique colour that never repeats
 // Colors are assigned based on alphabetical order of usernames to ensure consistency
@@ -37,24 +38,38 @@ const getColorIndexForUsername = (username, uniqueUsernamesSorted = []) =>
     return 0;
 };
 
-const chatService = 
-{
-    fetchMessages: async () =>
-    {
-        const res = await axios.get(backend_url);
+// function to normalize query text
+function normalizeQueryText(str) {
+    if (str == null || typeof str !== 'string') return '';
+    return str.trim().toLowerCase();
+}
+
+const chatService = {
+    fetchMessages: async (workspaceId, queryText) => {
+        if (!workspaceId || queryText === undefined || queryText === null) 
+            return [];
+
+        const normalized = normalizeQueryText(queryText);
+        if (!normalized) 
+            return [];
+
+        const res = await axios.get(chat_backend_url, {
+            params: { workspaceId, queryText: normalized }
+        });
         return res.data;
     },
-    sendMessage: async (message) =>
-    {
-        const res = await axios.post(backend_url, message);
+    sendMessage: async (message) => {
+        const res = await axios.post(chat_backend_url, message);
         return res.data;
     },
-    deleteMessage: async (messageId, username) =>
-    {
-        const res = await axios.delete(`${backend_url}/${messageId}`, {data: {username}});
+    deleteMessage: async (messageId, username) => {
+        const res = await axios.delete(`${chat_backend_url}/${messageId}`, { data: { username } });
         return res.data;
     }
 };
+
+// Check if Puter AI is available in the browser
+const isPuterAIAvailable = typeof window !== 'undefined' && window.puter?.ai;
 
 // Helper function to format documents for AI context
 const formatDocumentsForAI = (documents) => {
@@ -127,7 +142,8 @@ const formatWorkspaceHistoryForAI = (workspaceHistory) => {
             queryHistory += `  - Deleted/Removed Documents: ${deletedDocs.length}\n`;
             
             // Include details of saved documents
-            if (savedDocs.length > 0) {
+            if (savedDocs.length > 0) 
+            {
                 queryHistory += `  Saved Documents Details:\n`;
                 savedDocs.forEach((doc, docIndex) => {
                     const title = doc.title || 'Untitled';
@@ -141,7 +157,8 @@ const formatWorkspaceHistoryForAI = (workspaceHistory) => {
             }
             
             // Include details of deleted documents (for context on what was removed)
-            if (deletedDocs.length > 0) {
+            if (deletedDocs.length > 0) 
+            {
                 queryHistory += `  Deleted Documents (for reference):\n`;
                 deletedDocs.forEach((doc, docIndex) => {
                     const title = doc.title || 'Untitled';
@@ -162,7 +179,7 @@ const formatWorkspaceHistoryForAI = (workspaceHistory) => {
     }
 };
 
-function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [], workspaceHistory = null })
+function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [], workspaceHistory = null, workspaceId = null, queryId = null, queryText = null, currentUserId = null })
 {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
@@ -170,6 +187,13 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
     const [isAILoading, setIsAILoading] = useState(false);
     const [selectedDocuments, setSelectedDocuments] = useState([]);
     const [isDragOverDropZone, setIsDragOverDropZone] = useState(false);
+    const [availableAgents, setAvailableAgents] = useState([
+        { key: 'manager', name: 'Manager (auto)' },
+        { key: 'reformulator', name: 'Query Reformulator' },
+        { key: 'gapDetector', name: 'Knowledge Gap Detector' },
+        { key: 'summarizer', name: 'Result Summarizer' }
+    ]);
+    const [selectedAgentKey, setSelectedAgentKey] = useState('manager');
     const messagesEndRef = useRef(null);
     const messagesBoxRef = useRef(null);
     const previousMessagesLengthRef = useRef(0);
@@ -177,7 +201,8 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
 
     // Check if user is near the bottom of the chat
     const isNearBottom = () => {
-        if (!messagesBoxRef.current) return true;
+        if (!messagesBoxRef.current) 
+            return true;
         const { scrollTop, scrollHeight, clientHeight } = messagesBoxRef.current;
         // Consider "near bottom" if within 100px of the bottom
         const threshold = 100;
@@ -240,25 +265,29 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         }
     }, [messages, currentUsername]);
 
-    // Getting new message every 3 seconds
-    useEffect(() =>
-    {
-        let previousLength = messages.length;
-        
-        async function fetchMessages()
+    // Fetch messages for this search topic (workspace + queryText). Same topic = same chat; poll so others see messages.
+    useEffect(() => {
+        const normalized = normalizeQueryText(queryText);
+        if (!workspaceId || !normalized) 
         {
-            try
+            setMessages([]);
+            return;
+        }
+
+        setMessages([]); // clear when switching to another search topic
+        let previousLength = 0;
+
+        async function fetchMessages() {
+            try 
             {
-                const res = await chatService.fetchMessages();
-                const currentLength = res.length;
-                
-                // Only update if messages actually changed
+                const res = await chatService.fetchMessages(workspaceId, queryText);
+                const currentLength = Array.isArray(res) ? res.length : 0;
+
                 if (currentLength !== previousLength) 
                 {
                     const wasNearBottom = isNearBottom();
-                    setMessages(res);
-                    
-                    // If new messages arrived from server and user was at bottom, then scroll down
+                    setMessages(Array.isArray(res) ? res : []);
+
                     if (currentLength > previousLength && wasNearBottom && !isUserScrolledUpRef.current) 
                     {
                         setTimeout(() => {
@@ -266,33 +295,32 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                             isUserScrolledUpRef.current = false;
                         }, 100);
                     }
-                    
                     previousLength = currentLength;
                 }
-            }
-            catch (error)
+            } 
+            catch (error) 
             {
-                console.error("Failed to fetch chat messages: ", error);
+                console.error("Failed to fetch chat messages:", error);
             }
         }
         fetchMessages();
         const interval = setInterval(fetchMessages, 3000);
         return () => clearInterval(interval);
-    }, []);
+    }, [workspaceId, queryText]);
 
-    // Check if Puter AI is available
-    const isPuterAIAvailable = typeof window !== 'undefined' && window.puter?.ai;
-
-    // Handling @ai detection and AI mode
+    // Handling @-agent detection and AI mode
     const handleInputChange = (e) => {
         const value = e.target.value;
         setInput(value);
         
-        // Check if input starts with @ai (case-insensitive)
+        // Check if input starts with any supported agent tag (case-insensitive)
         const trimmedValue = value.trim().toLowerCase();
-        if (trimmedValue.startsWith('@ai')) {
+        if (trimmedValue.startsWith('@ai') || trimmedValue.startsWith('@reformulator') || trimmedValue.startsWith('@gapdetector') || trimmedValue.startsWith('@summarizer')) 
+        {
             setIsAIMode(true);
-        } else if (trimmedValue === '' || !trimmedValue.startsWith('@ai')) {
+        } 
+        else if (trimmedValue === '' || !trimmedValue.startsWith('@ai')) 
+        {
             setIsAIMode(false);
             // to clear any selected documents when leaving AI mode
             setSelectedDocuments([]);
@@ -301,7 +329,9 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
 
     const findDocumentByRecordId = (recordId) => 
     {
-        if (!recordId || !Array.isArray(documents)) return null;
+        if (!recordId || !Array.isArray(documents)) 
+            return null;
+
         return documents.find((doc) => 
         {
             const id = doc?.pnx?.control?.recordid;             // note: chaining is used here to access the recordid property of the document
@@ -315,11 +345,15 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
 
     const addSelectedDocument = (doc) => 
     {
-        if (!doc) return;
+        if (!doc) 
+            return;
+
         const recordId = Array.isArray(doc?.pnx?.control?.recordid) 
             ? doc.pnx.control.recordid[0] 
             : doc?.pnx?.control?.recordid;
-        if (!recordId) return;
+        
+        if (!recordId) 
+            return;
 
         setSelectedDocuments((prev) => 
         {
@@ -331,15 +365,22 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                     : item?.pnx?.control?.recordid;
                 return existingId === recordId;
             });
-            if (alreadyExists) return prev;
+            if (alreadyExists) 
+                return prev;
+
             return [...prev, doc];
         });
+    };
+
+    const removeSelectedDocument = (indexToRemove) => {
+        setSelectedDocuments((prev) => prev.filter((_, index) => index !== indexToRemove));
     };
 
     const handleDragOver = (event) => 
     {
         // drag & drop only when in AI mode
-        if (!isAIMode) return;
+        if (!isAIMode) 
+            return;
         event.preventDefault();
         event.dataTransfer.dropEffect = "copy";
         setIsDragOverDropZone(true);
@@ -353,7 +394,8 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
 
     const handleDrop = (event) => 
     {
-        if (!isAIMode) return;
+        if (!isAIMode) 
+            return;
         event.preventDefault();
         event.stopPropagation();
         setIsDragOverDropZone(false);
@@ -410,11 +452,23 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         }
 
         const inputText = input.trim();
-        const isAIMessage = inputText.toLowerCase().startsWith('@ai');
+        const lowerInput = inputText.toLowerCase();
+        const isAIMessage =
+            lowerInput.startsWith('@ai') ||
+            lowerInput.startsWith('@reformulator') ||
+            lowerInput.startsWith('@gapdetector') ||
+            lowerInput.startsWith('@summarizer') ||
+            // Also treat as AI if a specific agent is selected
+            (selectedAgentKey && selectedAgentKey !== 'manager');
 
-        // If @ai is detected, handle with Puter AI
+        // If AI is requested, handle with Puter AI (browser-side)
         if (isAIMessage) 
         {
+            const isPuterAIAvailable =
+                typeof window !== 'undefined' &&
+                window.puter &&
+                window.puter.ai;
+
             if (!isPuterAIAvailable) 
             {
                 const errorMsg = {
@@ -430,19 +484,8 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                 setIsAIMode(false);
                 return;
             }
-            
+
             setIsAILoading(true);
-            
-            // Extract the prompt after @ai
-            const aiPrompt = inputText.substring(3).trim(); // Remove '@ai' prefix
-            
-            if (!aiPrompt) 
-            {
-                setIsAILoading(false);
-                setInput("");
-                setIsAIMode(false);
-                return;
-            }
             
             // Add user message to chat
             const userMsg = 
@@ -459,6 +502,44 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
             
             try 
             {
+                // Determine which agent should be used for this request
+                let explicitAgent = null;
+                if (lowerInput.startsWith('@reformulator')) explicitAgent = 'reformulator';
+                else if (lowerInput.startsWith('@gapdetector')) explicitAgent = 'gapDetector';
+                else if (lowerInput.startsWith('@summarizer')) explicitAgent = 'summarizer';
+                else if (lowerInput.startsWith('@ai')) explicitAgent = 'manager';
+
+                let agentKeyToUse = selectedAgentKey && selectedAgentKey !== 'manager'
+                    ? selectedAgentKey
+                    : (explicitAgent || 'manager');
+
+                // Strip any leading @tag from the user text to get the actual request
+                let aiPrompt = inputText;
+                if (lowerInput.startsWith('@ai')) 
+                {
+                    aiPrompt = inputText.substring(3).trim();
+                } 
+                else if (lowerInput.startsWith('@reformulator')) 
+                {
+                    aiPrompt = inputText.substring('@reformulator'.length).trim();
+                } 
+                else if (lowerInput.startsWith('@gapdetector')) 
+                {
+                    aiPrompt = inputText.substring('@gapdetector'.length).trim();
+                } 
+                else if (lowerInput.startsWith('@summarizer')) 
+                {
+                    aiPrompt = inputText.substring('@summarizer'.length).trim();
+                }
+
+                if (!aiPrompt) 
+                {
+                    setIsAILoading(false);
+                    setInput("");
+                    setIsAIMode(false);
+                    return;
+                }
+
                 // Ensure documents is an array
                 const safeDocuments = Array.isArray(documents) ? documents : [];
 
@@ -475,15 +556,37 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                     ? formatWorkspaceHistoryForAI(workspaceHistory)
                     : '';
                 
-                // the full prompt with context
-                let fullPrompt = `You are an AI assistant helping users with research and document analysis. `;
-                fullPrompt += `You have the ability to help with query reformulation based on workspace history.\n\n`;
-                
+                // Base prompt with shared context
+                let fullPrompt = `You are an AI assistant helping users with research and document analysis.\n\n`;
+
+                if (agentKeyToUse === 'reformulator') 
+                {
+                    fullPrompt += `ROLE: Query Reformulator.\n`;
+                    fullPrompt += `You are an IIR expert. Based on the history and saved documents, suggest 3-5 improved search queries or keyword sets.\n\n`;
+                } 
+                else if (agentKeyToUse === 'gapDetector') 
+                {
+                    fullPrompt += `ROLE: Knowledge Gap Detector.\n`;
+                    fullPrompt += `Compare the user's request with the titles and abstracts of saved documents. Identify missing or underrepresented themes, methods, or perspectives.\n\n`;
+                } 
+                else if (agentKeyToUse === 'summarizer') 
+                {
+                    fullPrompt += `ROLE: Result Summarizer.\n`;
+                    fullPrompt += `Synthesize the provided document titles and abstracts into a concise, comparative summary of main themes.\n\n`;
+                } 
+                else 
+                {
+                    // Manager-style behavior
+                    fullPrompt += `ROLE: Research Manager.\n`;
+                    fullPrompt += `You can behave as a Query Reformulator, Knowledge Gap Detector, or Result Summarizer.\n`;
+                    fullPrompt += `Choose the most helpful perspective for the user. If the request is vague, ask 1 clarifying question instead of giving a full answer.\n\n`;
+                }
+
                 // Add workspace history if available
-                if (workspaceHistoryContext) {
+                if (workspaceHistoryContext) 
+                {
                     fullPrompt += `WORKSPACE AND QUERY HISTORY:\n`;
-                    fullPrompt += `This workspace contains a history of previous search queries and documents (both saved and deleted). `;
-                    fullPrompt += `Use this history to understand the user's research patterns and help reformulate queries if needed.\n\n`;
+                    fullPrompt += `This workspace contains a history of previous search queries and documents (both saved and deleted).\n`;
                     fullPrompt += `${workspaceHistoryContext}\n\n`;
                 }
                 
@@ -493,19 +596,8 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                 
                 // Add user request
                 fullPrompt += `USER REQUEST: ${aiPrompt}\n\n`;
-                
-                // extra prompts for more context
-                // fullPrompt += `INSTRUCTIONS:\n`;
-                // fullPrompt += `- Analyze the user's request and the provided context (workspace history and current search results).\n`;
-                // fullPrompt += `- If the user asks about query reformulation, suggest improved search queries based on:\n`;
-                // fullPrompt += `  * Previous queries in the workspace history\n`;
-                // fullPrompt += `  * Documents that were saved vs deleted (to understand what was relevant)\n`;
-                // fullPrompt += `  * The current search results and user's specific question\n`;
-                // fullPrompt += `- Provide specific, actionable query reformulation suggestions when relevant.\n`;
-                // fullPrompt += `- Answer questions about the documents using the title, authors, and descriptions provided.`;
 
-                // Calling Puter AI - using the API format from tutorial
-                // puter.ai.chat() takes message as first param, options as second param
+                // Call Puter AI - using the existing integration
                 const aiResponse = await window.puter.ai.chat(
                     fullPrompt,
                     { model: "gpt-5-nano" }
@@ -522,9 +614,16 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                     ? aiResponse 
                     : (aiResponse?.message?.content || aiResponse?.content || "I'm sorry, I couldn't generate a response.");
 
+                // Choose display name based on agent
+                let aiUsername = "AI Assistant";
+                if (agentKeyToUse === 'reformulator') aiUsername = "Query Reformulator";
+                else if (agentKeyToUse === 'gapDetector') aiUsername = "Knowledge Gap Detector";
+                else if (agentKeyToUse === 'summarizer') aiUsername = "Result Summarizer";
+
+
                 // Add AI response to chat
                 const aiMsg = {
-                    username: "AI Assistant",
+                    username: aiUsername,
                     userIndex: -1, // Special index for AI
                     text: responseText,
                     createdAt: new Date().toISOString(),
@@ -539,15 +638,35 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                     isUserScrolledUpRef.current = false;
                 }, 100);
                 
-                // Optionally save to backend (if you want AI messages persisted)
-                try 
+                // Persist AI exchange to this topic's chat so others searching the same topic see it
+                const normalizedTopic = normalizeQueryText(queryText);
+                if (workspaceId && normalizedTopic) 
                 {
-                    await chatService.sendMessage(userMsg);
-                    await chatService.sendMessage(aiMsg);
-                } 
-                catch (backendError) 
-                {
-                    console.warn("Failed to save AI messages to backend:", backendError);
+                    try 
+                    {
+                        await chatService.sendMessage({
+                            workspaceId,
+                            queryText: normalizedTopic,
+                            queryId: queryId || undefined,
+                            username: userMsg.username,
+                            userIndex: userMsg.userIndex,
+                            text: userMsg.text,
+                            createdAt: userMsg.createdAt
+                        });
+                        await chatService.sendMessage({
+                            workspaceId,
+                            queryText: normalizedTopic,
+                            queryId: queryId || undefined,
+                            username: aiMsg.username,
+                            userIndex: aiMsg.userIndex,
+                            text: aiMsg.text,
+                            createdAt: aiMsg.createdAt
+                        });
+                    } 
+                    catch (backendError) 
+                    {
+                        console.warn("Failed to save AI messages to backend:", backendError);
+                    }
                 }
             } 
             catch (error) 
@@ -556,12 +675,9 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                 console.error("Error details:", {
                     message: error?.message,
                     error: error?.error,
-                    success: error?.success,
-                    documents: documents,
-                    documentsType: typeof documents,
-                    isArray: Array.isArray(documents)
+                    success: error?.success
                 });
-                
+
                 const errorMessage = error?.error || error?.message || "Sorry, I encountered an error. Please try again.";
                 const errorMsg = {
                     username: "AI Assistant",
@@ -579,7 +695,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                 setInput("");
                 setIsAIMode(false);
                 
-                setSelectedDocuments([]);       // Clear selected documents after an AI interaction completes
+                setSelectedDocuments([]);       // Clear selected documents after  AI interaction completes
             }
             return;
         }
@@ -588,27 +704,32 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         // Calculate userIndex based on username to ensure consistent color assignment
         // Get all unique usernames from current messages, add current user if needed, and sort
         const allUsernames = messages.map(msg => msg.username).filter(Boolean);
-        if (!allUsernames.includes(currentUsername)) {
+        if (!allUsernames.includes(currentUsername)) 
+        {
             allUsernames.push(currentUsername);
         }
         const uniqueUsernamesSorted = [...new Set(allUsernames)].sort();
         const calculatedUserIndex = getColorIndexForUsername(currentUsername, uniqueUsernamesSorted);
 
-        const newMsg = 
-        {
+        const normalizedTopic = normalizeQueryText(queryText);
+        const newMsg = {
+            workspaceId: workspaceId || '',
+            queryText: normalizedTopic || '',
+            queryId: queryId || undefined,
             username: currentUsername,
             userIndex: calculatedUserIndex,
             text: inputText,
             createdAt: new Date().toISOString(),
             isAIMessage: false
         };
-        
-        // Debug logging
-        console.log("Sending message:", newMsg);
-        console.log("currentUsername:", currentUsername);
-        console.log("calculatedUserIndex:", calculatedUserIndex);
-        
-        try
+
+        if (!workspaceId || !normalizedTopic) 
+        {
+            console.warn("Chat is scoped to this search topic. workspaceId and queryText are required.");
+            return;
+        }
+
+        try 
         {
             await chatService.sendMessage(newMsg);
             setMessages(prev => [...prev, newMsg]);
@@ -655,11 +776,18 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         }
     };
 
+    const isPageScoped = Boolean(workspaceId && normalizeQueryText(queryText));
+
     return (
         <div className={styles.chatContainer}>
             <h3 className={styles.title}>Chat</h3>
+            {!isPageScoped && (
+                <p className={styles.hint} style={{ fontSize: '0.85rem', color: '#666', margin: '0.5rem 0' }}>
+                    Chat is tied to each search topic. Open a search result page to talk with others on that topic.
+                </p>
+            )}
 
-            <div 
+            <div
                 className={styles.messagesBox} 
                 ref={messagesBoxRef}
                 onScroll={handleScroll}
@@ -758,14 +886,14 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                     placeholder={isAIMode ? "Ask AI about the search results..." : "Type your message... (use @ai for AI assistance)"}
                     value={input}
                     onChange={handleInputChange}
-                    onKeyDown={(e) => e.key === "Enter" && !isAILoading && sendMessage()}
-                    disabled={isAILoading}
+                    onKeyDown={(e) => e.key === "Enter" && !isAILoading && isPageScoped && sendMessage()}
+                    disabled={isAILoading || !isPageScoped}
                 />
 
-                <button 
-                    className={styles.sendBtn} 
+                <button
+                    className={styles.sendBtn}
                     onClick={sendMessage}
-                    disabled={isAILoading}
+                    disabled={isAILoading || !isPageScoped}
                 >
                     {isAILoading ? 'Thinking...' : isAIMode ? 'Ask AI' : 'Send'}
                 </button>
@@ -792,14 +920,37 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                                     <div className={styles.selectedDocTitle}>{title}</div>
                                     <div className={styles.selectedDocAuthors}>{authors}</div>
                                 </div>
+                                <button
+                                    type="button"
+                                    className={styles.selectedDocRemoveBtn}
+                                    onClick={() => removeSelectedDocument(index)}
+                                    title="Remove document"
+                                    aria-label="Remove document"
+                                >
+                                    <CloseIcon fontSize="small" />
+                                </button>
                             </div>
                         );
                     })}
                 </div>
             )}
-            {isAIMode && !isPuterAIAvailable && (
-                <div style={{ padding: '0.5rem', fontSize: '0.75rem', color: '#e31a1c' }}>
-                    AI is not available. Please ensure Puter AI is loaded.
+            {isAIMode && (
+                <div style={{ padding: '0.5rem', fontSize: '0.75rem' }}>
+                    <label style={{ marginRight: '0.5rem', fontSize: '0.75rem' }}>
+                        Agent:
+                    </label>
+                    <select
+                        value={selectedAgentKey}
+                        onChange={(e) => setSelectedAgentKey(e.target.value)}
+                        style={{ fontSize: '0.75rem', padding: '0.25rem' }}
+                        disabled={isAILoading}
+                    >
+                        {availableAgents.map((agent) => (
+                            <option key={agent.key} value={agent.key}>
+                                {agent.name}
+                            </option>
+                        ))}
+                    </select>
                 </div>
             )}
         </div>

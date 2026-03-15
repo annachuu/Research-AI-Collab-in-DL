@@ -67,14 +67,18 @@ app.use('/api/auth', require('./routes/userRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/advancelogger', require('./routes/AdvanedLoggerRoutes'));
 app.use('/api/chat', require('./routes/chatRoutes'));
+app.use('/api/ai', require('./routes/aiRoutes'));
 
 // Serve Frontend in Production
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === 'production') 
+{
     app.use(express.static(path.join(__dirname, '../frontend/build')));
     app.get('*', (req, res) =>
         res.sendFile(path.resolve(__dirname, '../', 'frontend', 'build', 'index.html'))
     );
-} else {
+} 
+else 
+{
     app.get('/', (req, res) => res.send('Please set NODE_ENV to production.'));
 }
 

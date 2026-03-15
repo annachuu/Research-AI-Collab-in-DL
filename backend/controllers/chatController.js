@@ -1,23 +1,34 @@
 const ChatMessage = require("../models/chatMessageModel");
+const { normalizeQueryText } = require("../models/chatMessageModel");
 
-// Getting All Messages for all Users
-const getAllMessages = async (req, res) =>
-{
-    try
+// Get messages for this search topic (workspace + queryText), Same topic = same chat so other users see messages.
+const getAllMessages = async (req, res) => {
+    try 
     {
-        const msgs = await ChatMessage.find().sort({createdAt: 1});
+        const { workspaceId, queryText } = req.query;
+        if (!workspaceId || queryText === undefined || queryText === null)
+        {
+            return res.status(400).json({
+                message: "workspaceId and queryText (search topic) are required to load chat"
+            });
+        }
+        const normalized = normalizeQueryText(queryText);
+        if (!normalized) 
+        {
+            return res.status(400).json({ message: "queryText (search topic) cannot be empty" });
+        }
+        const msgs = await ChatMessage.find({ workspaceId, queryText: normalized }).sort({ createdAt: 1 });
         res.status(200).json(msgs);
-    }
-    catch (error)
+    } 
+    catch (error) 
     {
         console.error(error);
-        res.status(500).json({message: "Unable to fetch all messages"});
+        res.status(500).json({ message: "Unable to fetch messages" });
     }
 };
 
 // Getting Messages for a User
-const getMessagesByUsername = async (req, res) =>
-{
+const getMessagesByUsername = async (req, res) => {
     try
     {
         const {username} = req.params;
@@ -35,29 +46,39 @@ const getMessagesByUsername = async (req, res) =>
     }
 };
 
-// Save Message
-const saveMessage = async (req, res) =>
-{
-    try
+// Save message to this search topic's chat (workspace + normalized queryText). Stored in the chat for that topic.
+const saveMessage = async (req, res) => {
+    try 
     {
-        const {username, userIndex, text, createdAt} = req.body;
+        const { workspaceId, queryText, queryId, username, userIndex, text, createdAt } = req.body;
+        if (!workspaceId || queryText === undefined || queryText === null)
+        {
+            return res.status(400).json({ message: "workspaceId and queryText (search topic) are required" });
+        }
         if (!username || !text || userIndex === undefined)
         {
-            return res.status(400).json({message: "Missing required fields"});
+            return res.status(400).json({ message: "Missing required fields: username, text, userIndex" });
         }
-        const msg = await ChatMessage.create
-        ({
+        const normalized = normalizeQueryText(queryText);
+        if (!normalized) 
+        {
+            return res.status(400).json({ message: "queryText (search topic) cannot be empty" });
+        }
+        const msg = await ChatMessage.create({
+            workspaceId,
+            queryText: normalized,
+            queryId: queryId || null,
             username,
             userIndex,
             text,
             createdAt: createdAt || new Date()
         });
         res.status(201).json(msg);
-    }
-    catch (error)
+    } 
+    catch (error) 
     {
         console.error(error);
-        res.status(500).json({message: "Unable to save message"});
+        res.status(500).json({ message: "Unable to save message" });
     }
 };
 
