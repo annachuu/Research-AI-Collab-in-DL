@@ -21,6 +21,14 @@
     border-bottom: 1px solid #e2e8f0;
 }
 
+.messagesBoxWrapper
+{
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    display: flex;
+}
+
 .messagesBox
 {
     flex: 1;
@@ -148,6 +156,88 @@
     padding: 0.5rem;
     border: 1px solid #cbd5e1;
     border-radius: 4px;
+    min-width: 0;
+}
+
+/* Textarea auto grows with content so full text is visible, scrolls when content exceeds max */
+.inputTextarea
+{
+    display: block;
+    min-height: 2.5rem;
+    max-height: 10rem;
+    overflow-y: auto;
+    resize: none;
+    line-height: 1.4;
+    box-sizing: border-box;
+    transition: height 0.1s ease-out;
+}
+
+/* Hide visual scrollbar while allow scroll on mouse/trackpad */
+.inputTextarea::-webkit-scrollbar
+{
+    width: 0;
+    height: 0;
+}
+
+.inputTextarea
+{
+    /* hide scrollbar in textarea */
+    scrollbar-width: none;        /* Firefox */
+    -ms-overflow-style: none;     /* Edge */
+}
+
+/* suggestion in AI mode, shows suggestion in light gray, Tab accepts and text becomes normal colour */
+.inputWithSuggestion
+{
+    flex: 1;
+    position: relative;
+    display: flex;
+    min-width: 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    background: #fff;
+}
+
+.inputSuggestionOverlay
+{
+    position: absolute;
+    inset: 0;
+    padding: 0.5rem 0.65rem;
+    pointer-events: none;
+    overflow: hidden;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font: inherit;
+    font-size: inherit;
+    line-height: 1.4;
+    color: inherit;
+    display: flex;
+    align-items: flex-start;
+}
+
+.inputSuggestionTyped
+{
+    /* Reserve space equal to the typed text without drawing it,
+       so the suffix appears immediately after it */
+    visibility: hidden;
+    white-space: pre-wrap;
+}
+
+/* Space between typed text and suggestion suffix so it doesn't look crowded */
+.inputSuggestionGap
+{
+    flex-shrink: 0;
+    min-width: 0.25em;
+}
+
+.inputSuggestionSuffix
+{
+    color: #94a3b8;
+}
+
+.inputTransparentText
+{
+    /* no longer used – kept for backward compatibility */
 }
 
 .sendBtn
@@ -163,16 +253,15 @@
 /* drag & drop */
 .dropZone
 {
-    min-width: 72px;
-    max-width: 96px;
-    border: 2px dotted #94a3b8;
-    border-radius: 6px;
-    padding: 0.25rem;
+    min-width: 48px;
+    max-width: 56px;
+    border: 1px dashed #94a3b8;
+    border-radius: 4px;
+    padding: 0.2rem 0.35rem;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: #64748b;
     background-color: #f8fafc;
     transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
@@ -185,16 +274,40 @@
     box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
-.dropZoneSymbol
-{
-    font-size: 1.25rem;
-    margin-bottom: 0.1rem;
-}
-
 .dropZoneText
 {
     text-align: center;
     line-height: 1.1;
+}
+
+/* Custom placeholder: main text normal size, hint smaller */
+.placeholderOverlay
+{
+    position: absolute;
+    inset: 0;
+    padding: 0.5rem 0.65rem;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    font: inherit;
+    line-height: 1.4;
+    color: #94a3b8;
+    box-sizing: border-box;
+}
+
+.placeholderMain
+{
+    /* font-size: inherit; */
+    font-size: 0.85rem;
+    margin-bottom: 0.1rem;
+}
+
+.placeholderSub
+{
+    font-size: 0.65em;
+    color: #cbd5e1;
 }
 
 .selectedDocsRow
@@ -290,4 +403,56 @@
 {
     background-color: #fed7d7;
     color: #e53e3e;
+}
+
+/* AI thinking process, blurred and darkened messages area */
+.aiThinkingOverlay
+{
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 10;
+}
+
+.aiThinkingBlock
+{
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    border-left: 4px solid #3182ce;
+    min-width: 200px;
+}
+
+.aiThinkingContent
+{
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.aiThinkingSpinner
+{
+    color: #3182ce;
+    flex-shrink: 0;
+}
+
+.aiThinkingText
+{
+    font-size: 0.9375rem;
+    color: #334155;
+    font-weight: 600;
+}
+
+.aiThinkingBar
+{
+    height: 4px;
+    border-radius: 2px;
+    background-color: #e2e8f0;
 }

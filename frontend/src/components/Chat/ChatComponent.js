@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import CloseIcon from "@mui/icons-material/Close";
+import { CircularProgress, LinearProgress } from "@mui/material";
 import styles from "./Chat.module.css";
 import axios from 'axios'
 
@@ -18,6 +19,18 @@ const User_Colours =
 ];
 
 const chat_backend_url = "http://localhost:5006/api/chat";
+
+// Suggestions in AI mode, user can press Tab key to accept suggestion
+const AI_SUGGESTIONS = [
+    "reformulate my query",
+    "summarize these documents",
+    "summarize the results",
+    "compare these documents",
+    "gap analysis",
+    "identify knowledge gaps",
+    "help me refine my query",
+    "give me an overview of these papers",
+];
 
 // Ensuring each username gets a unique colour that never repeats
 // Colors are assigned based on alphabetical order of usernames to ensure consistency
@@ -183,6 +196,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
 {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
+    const chatInputRef = useRef(null);
     const [isAIMode, setIsAIMode] = useState(false);
     const [isAILoading, setIsAILoading] = useState(false);
     const [selectedDocuments, setSelectedDocuments] = useState([]);
@@ -204,7 +218,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         if (!messagesBoxRef.current) 
             return true;
         const { scrollTop, scrollHeight, clientHeight } = messagesBoxRef.current;
-        // Consider "near bottom" if within 100px of the bottom
+        // Consider near bottom if within 100px at the bottom
         const threshold = 100;
         return scrollHeight - scrollTop - clientHeight < threshold;
     };
@@ -253,8 +267,8 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                 messages[currentLength - 1]?.username === currentUsername;
             
             // Auto-scroll if:
-            // 1. User is near bottom, OR
-            // 2. It's a message from the current user (they just sent it)
+            // - User is near bottom, OR
+            // - It's a message from the current user (they just sent it)
             if (isNearBottom() || isNewMessageFromCurrentUser || !isUserScrolledUpRef.current) 
             {
                 setTimeout(() => {
@@ -308,22 +322,89 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         return () => clearInterval(interval);
     }, [workspaceId, queryText]);
 
+    // Get the "query part" of input after the @-command (e.g. "@ai " -> "", "@ai ref" -> "ref")
+    const getQueryPart = (value) => {
+        const v = value || '';
+        const lower = v.toLowerCase();
+        const patterns = [/^@ai\s*/i, /^@reformulator\s*/i, /^@gapdetector\s*/i, /^@summarizer\s*/i];
+        let rest = v;
+        for (const p of patterns) 
+        {
+            const match = rest.match(p);
+            if (match) 
+            {
+                rest = rest.slice(match[0].length);
+                break;
+            }
+        }
+        return rest;
+    };
+
+    // Get suggestion suffix when in AI mode: first suggestion that starts with the query part (light-gray until Tab accept)
+    const getSuggestion = (queryPart) => {
+        if (!queryPart || !queryPart.length) 
+            return null;
+
+        const q = queryPart.toLowerCase();
+        for (const s of AI_SUGGESTIONS) 
+        {
+            if (s.toLowerCase().startsWith(q) && s.length > q.length) 
+            {
+                return { full: s, suffix: s.slice(q.length) };
+            }
+        }
+        return null;
+    };
+
     // Handling @-agent detection and AI mode
+    // Auto-resize textarea so it grows with content and avoids internal scroll until max height
+    const resizeTextarea = () => {
+        const el = chatInputRef.current;
+        if (!el) return;
+        el.style.height = 'auto';
+        const capped = Math.min(el.scrollHeight, 160); // ~10rem max
+        el.style.height = `${Math.max(capped, 40)}px`;
+    };
+
+    useEffect(() => {
+        resizeTextarea();
+    }, [input]);
+
     const handleInputChange = (e) => {
         const value = e.target.value;
         setInput(value);
-        
-        // Check if input starts with any supported agent tag (case-insensitive)
-        const trimmedValue = value.trim().toLowerCase();
+
+        const trimmedValue = (value || '').trim().toLowerCase();
         if (trimmedValue.startsWith('@ai') || trimmedValue.startsWith('@reformulator') || trimmedValue.startsWith('@gapdetector') || trimmedValue.startsWith('@summarizer')) 
         {
             setIsAIMode(true);
         } 
-        else if (trimmedValue === '' || !trimmedValue.startsWith('@ai')) 
+        else if (trimmedValue === '' || !trimmedValue.startsWith('@')) 
         {
             setIsAIMode(false);
-            // to clear any selected documents when leaving AI mode
             setSelectedDocuments([]);
+        }
+    };
+
+    // Tab to accept suggestion: append suffix to input so it becomes normal text (same color)
+    const handleInputKeyDown = (e) => {
+        if (e.key === 'Enter' && !isAILoading && isPageScoped) 
+        {
+            e.preventDefault();
+            sendMessage();
+            return;
+        }
+        if (e.key === 'Tab' && isAIMode) 
+        {
+            const queryPart = getQueryPart(input);
+            const suggestion = getSuggestion(queryPart);
+
+            if (suggestion && suggestion.suffix) 
+            {
+                e.preventDefault();
+                const prefix = input.slice(0, input.length - queryPart.length);
+                setInput(prefix + suggestion.full);
+            }
         }
     };
 
@@ -787,77 +868,88 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                 </p>
             )}
 
-            <div
-                className={styles.messagesBox} 
-                ref={messagesBoxRef}
-                onScroll={handleScroll}
-            >
-                {(() => {
-                    // Extract all unique usernames from messages and sort them alphabetically
-                    // This ensures consistent color assignment: first user gets color 0, second gets color 1, etc.
-                    // No two users will have the same color as long as we have <= 10 unique users
-                    const allUsernames = messages.map(msg => msg.username).filter(Boolean);
-                    const uniqueUsernamesSorted = [...new Set(allUsernames)].sort();
-                    
-                    return messages.map((msg, i) => 
-                    {
-                        // Get color index based on username's position in sorted unique usernames
-                        // This ensures no color repeats and each username always gets the same color
-                        // Handle AI messages with special color
-                        let colorIndex;
-                        if (msg.isAIMessage || msg.username === "AI Assistant") 
-                        {
-                            colorIndex = User_Colours.length - 1; // Use last color for AI
-                        } 
-                        else 
-                        {
-                            colorIndex = msg.username 
-                                ? getColorIndexForUsername(msg.username, uniqueUsernamesSorted) 
-                                : (msg.userIndex || 0);
-                            colorIndex = Math.max(0, Math.min(colorIndex, User_Colours.length - 1));
-                        }
-                        const userColor = User_Colours[colorIndex];
-                        const isOwnMessage = msg.username === currentUsername;
-                    
-                    return (
-                        <div
-                            key={msg._id || i}
-                            className={styles.message}
-                            style={{borderLeftColor: userColor}}
-                        >
-                            <div className={styles.messageHeader}>
-                                <div className={styles.messageContent}>
-                                    <span className={styles.user} style={{color: userColor}}>
-                                        {msg.username}:
-                                    </span>
-                                    <span className={styles.text}>{msg.text}</span>
+            <div className={styles.messagesBoxWrapper}>
+                <div
+                    className={styles.messagesBox}
+                    ref={messagesBoxRef}
+                    onScroll={handleScroll}
+                >
+                    {(() => {
+                        const allUsernames = messages.map(msg => msg.username).filter(Boolean);
+                        const uniqueUsernamesSorted = [...new Set(allUsernames)].sort();
+
+                        return messages.map((msg, i) => {
+                            let colorIndex;
+                            if (msg.isAIMessage || msg.username === "AI Assistant") 
+                            {
+                                colorIndex = User_Colours.length - 1;
+                            } 
+                            else 
+                            {
+                                colorIndex = msg.username
+                                    ? getColorIndexForUsername(msg.username, uniqueUsernamesSorted)
+                                    : (msg.userIndex || 0);
+                                colorIndex = Math.max(0, Math.min(colorIndex, User_Colours.length - 1));
+                            }
+                            const userColor = User_Colours[colorIndex];
+                            const isOwnMessage = msg.username === currentUsername;
+
+                            return (
+                                <div
+                                    key={msg._id || i}
+                                    className={styles.message}
+                                    style={{ borderLeftColor: userColor }}
+                                >
+                                    <div className={styles.messageHeader}>
+                                        <div className={styles.messageContent}>
+                                            <span className={styles.user} style={{ color: userColor }}>
+                                                {msg.username}:
+                                            </span>
+                                            <span className={styles.text}>{msg.text}</span>
+                                        </div>
+                                        {isOwnMessage && msg._id && (
+                                            <button
+                                                className={styles.deleteBtn}
+                                                onClick={() => deleteMessage(msg._id)}
+                                                title="Delete message"
+                                            >
+                                                ×
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className={styles.messageFooter}>
+                                        <span className={styles.time}>
+                                            {new Date(msg.createdAt).toLocaleString('en-US', {
+                                                month: 'short',
+                                                day: 'numeric',
+                                                year: 'numeric',
+                                                hour: 'numeric',
+                                                minute: '2-digit',
+                                                hour12: true
+                                            })}
+                                        </span>
+                                    </div>
                                 </div>
-                                {isOwnMessage && msg._id && (
-                                    <button
-                                        className={styles.deleteBtn}
-                                        onClick={() => deleteMessage(msg._id)}
-                                        title="Delete message"
-                                    >
-                                        ×
-                                    </button>
-                                )}
+                            );
+                        });
+                    })()}
+                    <div ref={messagesEndRef} />
+                </div>
+                {isAILoading && (
+                    <div className={styles.aiThinkingOverlay} aria-live="polite" aria-busy="true">
+                        <div className={styles.aiThinkingBlock}>
+                            <div className={styles.aiThinkingContent}>
+                                <CircularProgress size={36} thickness={4} className={styles.aiThinkingSpinner} />
+                                <span className={styles.aiThinkingText}>AI is thinking...</span>
                             </div>
-                            <div className={styles.messageFooter}>
-                                <span className={styles.time}>
-                                    {new Date(msg.createdAt).toLocaleString('en-US', {
-                                        month: 'short',
-                                        day: 'numeric',
-                                        year: 'numeric',
-                                        hour: 'numeric',
-                                        minute: '2-digit',
-                                        hour12: true
-                                    })}
-                                </span>
-                            </div>
+                            <LinearProgress
+                                className={styles.aiThinkingBar}
+                                variant="indeterminate"
+                                sx={{ "& .MuiLinearProgress-bar": { backgroundColor: "#3182ce" } }}
+                            />
                         </div>
-                    );
-                })})()}
-                <div ref={messagesEndRef} />
+                    </div>
+                )}
             </div>
             
             <div 
@@ -871,24 +963,41 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                     <div 
                         className={`${styles.dropZone} ${isDragOverDropZone ? styles.dropZoneActive : ''}`}
                     >
-                        <div className={styles.dropZoneSymbol}>
-                            
-                        </div>
-                        <span className={styles.dropZoneText}>
-                            Drag documents here
-                        </span>
+                        <span className={styles.dropZoneText}>Drop here</span>
                     </div>
                 )}
 
-                <input
-                    type="text"
-                    className={styles.input}
-                    placeholder={isAIMode ? "Ask AI about the search results..." : "Type your message... (use @ai for AI assistance)"}
-                    value={input}
-                    onChange={handleInputChange}
-                    onKeyDown={(e) => e.key === "Enter" && !isAILoading && isPageScoped && sendMessage()}
-                    disabled={isAILoading || !isPageScoped}
-                />
+                {/* Single persistent wrapper and textarea so the input never remounts (avoids focus loss when suggestion appears/disappears) */}
+                <div className={styles.inputWithSuggestion}>
+                    {!isAIMode && !input && (
+                        <div className={styles.placeholderOverlay} aria-hidden="true">
+                            <span className={styles.placeholderMain}>Type your message</span>
+                            <span className={styles.placeholderSub}> (use @ ai for assistance)</span>
+                        </div>
+                    )}
+                    {isAIMode && (() => {
+                        const queryPart = getQueryPart(input);
+                        const suggestion = getSuggestion(queryPart);
+                        const showSuggestion = suggestion && suggestion.suffix.length > 0;
+                        return showSuggestion ? (
+                            <div className={styles.inputSuggestionOverlay} aria-hidden="true">
+                                <span className={styles.inputSuggestionTyped}>{input}</span>
+                                <span className={styles.inputSuggestionSuffix}>{suggestion.suffix}</span>
+                            </div>
+                        ) : null;
+                    })()}
+                    <textarea
+                        ref={chatInputRef}
+                        className={`${styles.input} ${styles.inputTextarea}`}
+                        placeholder={isAIMode && getSuggestion(getQueryPart(input))?.suffix ? "Tab to accept suggestion" : isAIMode ? "Ask AI about the search results... (type for suggestions)" : ""}
+                        value={input}
+                        onChange={handleInputChange}
+                        onKeyDown={handleInputKeyDown}
+                        disabled={isAILoading || !isPageScoped}
+                        rows={1}
+                        aria-label="Chat message"
+                    />
+                </div>
 
                 <button
                     className={styles.sendBtn}
