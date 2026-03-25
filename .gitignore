@@ -14,8 +14,7 @@ backend/node_modules/
 frontend/node_modules/
 standalone/
 # dotenv environment variable files
-backend/.env
-.env
+
 # .env.development.local
 # .env.test.local
 # .env.production.local
