@@ -35,18 +35,24 @@ function SearchComponent() {
 
     const searchFormHandler = (event) => {        
         event.preventDefault();  
-        localStorage.setItem('query', searchKeyword)        
+        const normalizedKeyword = searchKeyword.trim();
+        localStorage.setItem('query', normalizedKeyword);
+        // Persist the "Workspace: ..." breadcrumb to match the current search topic.
+        localStorage.setItem('wpname', normalizedKeyword);
+        // Used elsewhere to indicate ongoing topic (if/when enabled in the UI).
+        localStorage.setItem('searchTopic', normalizedKeyword);
 
         const TEMP = {
-            'keyword': searchKeyword,
+            'keyword': normalizedKeyword,
             'workspaceId': workspaceId
         }
         
         const newQueryData = {
-            'query': searchKeyword,
+            'query': normalizedKeyword,
             'userId': user.data._id,
             'workspaceId': workspaceId,
-            'workspaceName': localStorage.getItem('wpname'),
+            // Store the search topic as the query's workspaceName so the content-list breadcrumb restores correctly.
+            'workspaceName': normalizedKeyword,
             'documents': []
         }
         dispatch(createQuery(newQueryData))

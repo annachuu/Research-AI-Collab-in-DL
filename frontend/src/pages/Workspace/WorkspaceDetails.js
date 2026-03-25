@@ -106,10 +106,16 @@ function WorkspaceDetails() {
     {
         if (!topicsGrouped || Object.keys(topicsGrouped).length === 0) return;
 
-        const firstTopic = Object.keys(topicsGrouped)[0];
+        // Restore the last opened topic so the timeline resumes where the user left off.
+        const lastTopicRaw = localStorage.getItem('searchTopic') || localStorage.getItem('query') || '';
+        const lastTopic = lastTopicRaw.trim();
 
-        setHighlightedTopic(firstTopic);
-        setSelectedTopicQueries(topicsGrouped[firstTopic]);
+        const topics = Object.keys(topicsGrouped);
+        const matchingTopic = lastTopic && topics.includes(lastTopic) ? lastTopic : null;
+        const topicToOpen = matchingTopic || topics[0];
+
+        setHighlightedTopic(topicToOpen);
+        setSelectedTopicQueries(topicsGrouped[topicToOpen]);
     }, [topicsGrouped]);
 
     // Ensures no previous workspace states is carried between workspaces
@@ -184,8 +190,11 @@ function WorkspaceDetails() {
 
     const redirectToContentLists = (details) => {
         console.log('details_', details)
-        localStorage.setItem('query', details.query)
-        localStorage.setItem('wpname', currentWorkspace.name)
+        const normalizedTopic = (details.query || '').trim();
+        localStorage.setItem('query', normalizedTopic)
+        // Persist the "Workspace: ..." breadcrumb to match this query/topic.
+        localStorage.setItem('wpname', normalizedTopic)
+        localStorage.setItem('searchTopic', normalizedTopic);
         setTimeout(() => {
             // navigate('/testing/' + details.workspaceId + '/' + details._id, {state: details.query})        
             navigate('/task/' + details.workspaceId + '/' + details._id)        
@@ -195,13 +204,17 @@ function WorkspaceDetails() {
     const submitFormHandler = (event) => {
         console.log('submit form handler is running:: ', searchInput, '_', singleWorkspace)
         event.preventDefault();       
-        localStorage.setItem('query', searchInput)
-        localStorage.setItem('wpname', currentWorkspace.name)
+        const normalizedTopic = searchInput.trim();
+        localStorage.setItem('query', normalizedTopic)
+        // Persist the "Workspace: ..." breadcrumb to match this search topic.
+        localStorage.setItem('wpname', normalizedTopic)
+        localStorage.setItem('searchTopic', normalizedTopic);
         const queryData = {
-            'query': searchInput,
+            'query': normalizedTopic,
             'userId': user.data._id,
             'workspaceId': id,
-            'workspaceName': currentWorkspace.name,
+            // Store the search topic so Contentlists.js can restore the breadcrumb.
+            'workspaceName': normalizedTopic,
             'documents': []
         }        
         console.log(queryData)    
@@ -230,12 +243,18 @@ function WorkspaceDetails() {
     const handleResumeCallback = (topic) => 
     {
         setHighlightedTopic(topic);
+        const normalizedTopic = (topic || '').trim();
+        localStorage.setItem('searchTopic', normalizedTopic);
+        localStorage.setItem('query', normalizedTopic);
     } 
 
     const handleTopicClick = (topic, queries) => 
     {
         setSelectedTopicQueries(queries);
         setHighlightedTopic(topic);
+        const normalizedTopic = (topic || '').trim();
+        localStorage.setItem('searchTopic', normalizedTopic);
+        localStorage.setItem('query', normalizedTopic);
     };
 
     return (

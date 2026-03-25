@@ -80,7 +80,8 @@ function ContentListsComponent() {
         dispatch(resetSearchResults())
         dispatch(resetWorkspaceData())
         localStorage.removeItem('query')
-        localStorage.removeItem('wpname')
+        // Keep the last breadcrumb value so reopening a saved task/query restores
+        // `Dashboard / Workspace: ...` correctly.
     }
 
     const resetDocumentSuccessStatus = () => {
@@ -160,9 +161,11 @@ function ContentListsComponent() {
         if(isQueryDetailSuccess){
             console.log('TT~TT ' , queryDetailObject)
             setCapturedDocs(queryDetailObject.documents)
-            setCurrentWorkspace(queryDetailObject.workspaceName)            
-            
-            localStorage.setItem('wpname', queryDetailObject.workspaceName)
+            const savedTopic = (queryDetailObject.query || queryDetailObject.workspaceName || '').trim()
+            setCurrentWorkspace(savedTopic)
+            // Restore breadcrumb from the saved search topic.
+            localStorage.setItem('wpname', savedTopic)
+            localStorage.setItem('searchTopic', savedTopic)
             const user_data = {
                 'userId': user.data._id
             }
@@ -215,11 +218,17 @@ function ContentListsComponent() {
         console.log('isNewSearchKeyeword detected', isNewSearchKeyword)
         console.log(currentWorkspace)
         if(isNewSearchKeyword !== null){
+            const newTopic = (isNewSearchKeyword.keyword || '').trim()
+            // Keep the breadcrumb aligned with the latest search topic.
+            setCurrentWorkspace(newTopic)
+            localStorage.setItem('wpname', newTopic)
+            localStorage.setItem('searchTopic', newTopic)
             const newQueryData = {
-                'query': isNewSearchKeyword.keyword,
+                'query': newTopic,
                 'userId': user.data._id,
                 'workspaceId': workspaceId,
-                'workspaceName': currentWorkspace,
+                // Save the search topic for breadcrumb restoration.
+                'workspaceName': newTopic,
                 'documents': []
             }
             

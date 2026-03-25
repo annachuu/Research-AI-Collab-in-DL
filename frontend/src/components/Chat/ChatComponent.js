@@ -3,6 +3,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { CircularProgress, LinearProgress } from "@mui/material";
 import styles from "./Chat.module.css";
 import axios from 'axios'
+import { ResearchAIChatBridge } from "../../services/aiChatBridge";
 
 const User_Colours = 
 [
@@ -84,113 +85,7 @@ const chatService = {
 // Check if Puter AI is available in the browser
 const isPuterAIAvailable = typeof window !== 'undefined' && window.puter?.ai;
 
-// Helper function to format documents for AI context
-const formatDocumentsForAI = (documents) => {
-    if (!documents || !Array.isArray(documents) || documents.length === 0) 
-    {
-        return "No documents available.";
-    }
-
-    try 
-    {
-        return documents.map((doc, index) => {
-            if (!doc || typeof doc !== 'object') 
-            {
-                return `Document ${index + 1}: Invalid document data`;
-            }
-            
-            const title = doc.pnx?.display?.title?.[0] || doc.pnx?.display?.title || 'Untitled';
-
-            // IF au exists, if is array, join with commas ELSE use it directly. ELSE IF addau exists, do  same thing. ELSE use "Unknown"
-            const authors = doc.pnx?.addata?.au 
-                ? (Array.isArray(doc.pnx.addata.au) ? doc.pnx.addata.au.join(', ') : doc.pnx.addata.au)
-                : (doc.pnx?.addata?.addau 
-                    ? (Array.isArray(doc.pnx.addata.addau) ? doc.pnx.addata.addau.join(', ') : doc.pnx.addata.addau)
-                    : 'Unknown authors');
-            const abstract = doc.pnx?.addata?.abstract?.[0] || doc.pnx?.addata?.abstract || 'No abstract available';
-            const type = doc.pnx?.display?.type || 'Unknown type';
-            const date = doc.pnx?.display?.creationdate || doc.pnx?.facets?.creationdate || 'Unknown date';
-            
-            return `Document ${index + 1}:
-                Title: ${title}
-                Authors: ${authors}
-                Type: ${type}
-                Date: ${date}
-                Abstract: ${abstract}`;
-        }).join('\n\n');
-    } 
-    catch (error) 
-    {
-        console.error("Error formatting documents for AI:", error);
-        return "Error formatting documents.";
-    }
-};
-
-// Helper function to format workspace history (queries and documents) for context for the AI
-const formatWorkspaceHistoryForAI = (workspaceHistory) => {
-    if (!workspaceHistory || !Array.isArray(workspaceHistory.queries) || workspaceHistory.queries.length === 0) 
-    {
-        return "No workspace history available.";
-    }
-
-    try 
-    {
-        // for the workspace history
-        const workspaceName = workspaceHistory.workspaceName || workspaceHistory.name || 'Unknown Workspace';
-        let historyText = `WORKSPACE HISTORY: "${workspaceName}"\n`;
-        historyText += `Total Queries: ${workspaceHistory.queries.length}\n\n`;
-
-        // for the queries in the workspace history
-        return workspaceHistory.queries.map((query, queryIndex) => {
-            const queryText = query.query || query.queryName || 'Untitled Query';
-            const queryDate = query.createdAt ? new Date(query.createdAt).toLocaleDateString() : 'Unknown date';
-            const documents = Array.isArray(query.documents) ? query.documents : [];
-            
-            // Separate saved and deleted documents
-            const savedDocs = documents.filter(doc => !doc.doc_isRemoved && !doc.isRemoved);
-            const deletedDocs = documents.filter(doc => doc.doc_isRemoved || doc.isRemoved);
-            
-            let queryHistory = `Query ${queryIndex + 1}: "${queryText}" (Created: ${queryDate})\n`;
-            queryHistory += `  - Saved Documents: ${savedDocs.length}\n`;
-            queryHistory += `  - Deleted/Removed Documents: ${deletedDocs.length}\n`;
-            
-            // Include details of saved documents
-            if (savedDocs.length > 0) 
-            {
-                queryHistory += `  Saved Documents Details:\n`;
-                savedDocs.forEach((doc, docIndex) => {
-                    const title = doc.title || 'Untitled';
-                    const authors = Array.isArray(doc.doc_authors) 
-                        ? doc.doc_authors.join(', ') 
-                        : (doc.doc_authors || 'Unknown authors');
-                    const abstract = doc.doc_abstract || 'No abstract available';
-                    queryHistory += `    ${docIndex + 1}. "${title}" by ${authors}\n`;
-                    queryHistory += `       Abstract: ${abstract.substring(0, 150)}${abstract.length > 150 ? '...' : ''}\n`;
-                });
-            }
-            
-            // Include details of deleted documents (for context on what was removed)
-            if (deletedDocs.length > 0) 
-            {
-                queryHistory += `  Deleted Documents (for reference):\n`;
-                deletedDocs.forEach((doc, docIndex) => {
-                    const title = doc.title || 'Untitled';
-                    const authors = Array.isArray(doc.doc_authors) 
-                        ? doc.doc_authors.join(', ') 
-                        : (doc.doc_authors || 'Unknown authors');
-                    queryHistory += `    ${docIndex + 1}. "${title}" by ${authors} [DELETED]\n`;
-                });
-            }
-            
-            return queryHistory;
-        }).join('\n\n');
-    } 
-    catch (error) 
-    {
-        console.error("Error formatting workspace history for AI:", error);
-        return "Error formatting workspace history.";
-    }
-};
+const aiChatBridge = new ResearchAIChatBridge();
 
 function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [], workspaceHistory = null, workspaceId = null, queryId = null, queryText = null, currentUserId = null })
 {
@@ -453,15 +348,25 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         });
     };
 
+    const getSelectedDocsMentionText = () => {
+        if (!Array.isArray(selectedDocuments) || selectedDocuments.length === 0) return '';
+
+        const titles = selectedDocuments
+            .map((doc) => doc?.pnx?.display?.title?.[0] || doc?.pnx?.display?.title || 'Untitled')
+            .filter(Boolean);
+
+        if (titles.length === 0) return '';
+
+        // Short reference block that will be appended to the outgoing chat message.
+        return `\n[References: ${titles.join(', ')}]`;
+    };
+
     const removeSelectedDocument = (indexToRemove) => {
         setSelectedDocuments((prev) => prev.filter((_, index) => index !== indexToRemove));
     };
 
     const handleDragOver = (event) => 
     {
-        // drag & drop only when in AI mode
-        if (!isAIMode) 
-            return;
         event.preventDefault();
         event.dataTransfer.dropEffect = "copy";
         setIsDragOverDropZone(true);
@@ -475,8 +380,6 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
 
     const handleDrop = (event) => 
     {
-        if (!isAIMode) 
-            return;
         event.preventDefault();
         event.stopPropagation();
         setIsDragOverDropZone(false);
@@ -533,6 +436,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         }
 
         const inputText = input.trim();
+        const mentionText = getSelectedDocsMentionText();
         const lowerInput = inputText.toLowerCase();
         const isAIMessage =
             lowerInput.startsWith('@ai') ||
@@ -542,30 +446,9 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
             // Also treat as AI if a specific agent is selected
             (selectedAgentKey && selectedAgentKey !== 'manager');
 
-        // If AI is requested, handle with Puter AI (browser-side)
+        // If AI is requested, handle with AI bridge/proxy (browser-side)
         if (isAIMessage) 
         {
-            const isPuterAIAvailable =
-                typeof window !== 'undefined' &&
-                window.puter &&
-                window.puter.ai;
-
-            if (!isPuterAIAvailable) 
-            {
-                const errorMsg = {
-                    username: "AI Assistant",
-                    userIndex: -1,
-                    text: "Puter AI is not available. Please ensure the script is loaded.",
-                    createdAt: new Date().toISOString(),
-                    isAIMessage: true,
-                    isError: true
-                };
-                setMessages(prev => [...prev, errorMsg]);
-                setInput("");
-                setIsAIMode(false);
-                return;
-            }
-
             setIsAILoading(true);
             
             // Add user message to chat
@@ -573,7 +456,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
             {
                 username: currentUsername,
                 userIndex: 0,
-                text: inputText,
+                text: inputText + mentionText,
                 createdAt: new Date().toISOString(),
                 isAIMessage: false
             };
@@ -621,79 +504,20 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                     return;
                 }
 
-                // Ensure documents is an array
+                // Prefer explicitly selected documents (from drag-and-drop) when available,
+                // otherwise fall back to all documents on the page
                 const safeDocuments = Array.isArray(documents) ? documents : [];
-
-                // Prefer explicitly selected documents (from drag-and-drop) when available
                 const docsForAI = Array.isArray(selectedDocuments) && selectedDocuments.length > 0
                     ? selectedDocuments
                     : safeDocuments;
-                
-                // Format documents for context
-                const documentsContext = formatDocumentsForAI(docsForAI);
-                
-                // Format workspace history if available
-                const workspaceHistoryContext = workspaceHistory 
-                    ? formatWorkspaceHistoryForAI(workspaceHistory)
-                    : '';
-                
-                // Base prompt with shared context
-                let fullPrompt = `You are an AI assistant helping users with research and document analysis.\n\n`;
 
-                if (agentKeyToUse === 'reformulator') 
-                {
-                    fullPrompt += `ROLE: Query Reformulator.\n`;
-                    fullPrompt += `You are an IIR expert. Based on the history and saved documents, suggest 3-5 improved search queries or keyword sets.\n\n`;
-                } 
-                else if (agentKeyToUse === 'gapDetector') 
-                {
-                    fullPrompt += `ROLE: Knowledge Gap Detector.\n`;
-                    fullPrompt += `Compare the user's request with the titles and abstracts of saved documents. Identify missing or underrepresented themes, methods, or perspectives.\n\n`;
-                } 
-                else if (agentKeyToUse === 'summarizer') 
-                {
-                    fullPrompt += `ROLE: Result Summarizer.\n`;
-                    fullPrompt += `Synthesize the provided document titles and abstracts into a concise, comparative summary of main themes.\n\n`;
-                } 
-                else 
-                {
-                    // Manager-style behavior
-                    fullPrompt += `ROLE: Research Manager.\n`;
-                    fullPrompt += `You can behave as a Query Reformulator, Knowledge Gap Detector, or Result Summarizer.\n`;
-                    fullPrompt += `Choose the most helpful perspective for the user. If the request is vague, ask 1 clarifying question instead of giving a full answer.\n\n`;
-                }
-
-                // Add workspace history if available
-                if (workspaceHistoryContext) 
-                {
-                    fullPrompt += `WORKSPACE AND QUERY HISTORY:\n`;
-                    fullPrompt += `This workspace contains a history of previous search queries and documents (both saved and deleted).\n`;
-                    fullPrompt += `${workspaceHistoryContext}\n\n`;
-                }
-                
-                // Add current search results
-                fullPrompt += `CURRENT SEARCH RESULTS (documents from this page):\n`;
-                fullPrompt += `${documentsContext}\n\n`;
-                
-                // Add user request
-                fullPrompt += `USER REQUEST: ${aiPrompt}\n\n`;
-
-                // Call Puter AI - using the existing integration
-                const aiResponse = await window.puter.ai.chat(
-                    fullPrompt,
-                    { model: "gpt-5-nano" }
-                );
-
-                // Check if response is an error object
-                if (aiResponse && typeof aiResponse === 'object' && aiResponse.success === false) 
-                {
-                    throw new Error(aiResponse.error || "AI request failed");
-                }
-
-                // The response is a string directly, not an object
-                const responseText = typeof aiResponse === 'string' 
-                    ? aiResponse 
-                    : (aiResponse?.message?.content || aiResponse?.content || "I'm sorry, I couldn't generate a response.");
+                // Use the bridge (with proxy inside) to talk to the AI model
+                const responseText = await aiChatBridge.sendResearchRequest({
+                    agentKeyToUse,
+                    aiPrompt,
+                    documents: docsForAI,
+                    workspaceHistory
+                });
 
                 // Choose display name based on agent
                 let aiUsername = "AI Assistant";
@@ -799,7 +623,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
             queryId: queryId || undefined,
             username: currentUsername,
             userIndex: calculatedUserIndex,
-            text: inputText,
+            text: inputText + mentionText,
             createdAt: new Date().toISOString(),
             isAIMessage: false
         };
@@ -959,13 +783,11 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
             >
-                {isAIMode && (
-                    <div 
-                        className={`${styles.dropZone} ${isDragOverDropZone ? styles.dropZoneActive : ''}`}
-                    >
-                        <span className={styles.dropZoneText}>Drop here</span>
-                    </div>
-                )}
+                <div
+                    className={`${styles.dropZone} ${isDragOverDropZone ? styles.dropZoneActive : ''}`}
+                >
+                    <span className={styles.dropZoneText}>Drop here to reference</span>
+                </div>
 
                 {/* Single persistent wrapper and textarea so the input never remounts (avoids focus loss when suggestion appears/disappears) */}
                 <div className={styles.inputWithSuggestion}>
@@ -1007,7 +829,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                     {isAILoading ? 'Thinking...' : isAIMode ? 'Ask AI' : 'Send'}
                 </button>
             </div>
-            {isAIMode && selectedDocuments.length > 0 && (
+            {selectedDocuments.length > 0 && (
                 <div className={styles.selectedDocsRow}>
                     {/* loop through the selected documents and display */}
                     {selectedDocuments.map((doc, index) => {
