@@ -13,11 +13,13 @@ node_modules/
 backend/node_modules/
 frontend/node_modules/
 standalone/
+
 # dotenv environment variable files
+backend/config/db.js
 backend/.env
 .env
-backend/config/db.js
 # .env.development.local
 # .env.test.local
 # .env.production.local
 # .env.local
+backend/config/db.js
