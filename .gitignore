@@ -16,6 +16,7 @@ standalone/
 # dotenv environment variable files
 backend/.env
 .env
+backend/config/db.js
 # .env.development.local
 # .env.test.local
 # .env.production.local
