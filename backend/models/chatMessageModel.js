@@ -36,6 +36,17 @@ const ChatMessageSchema = new mongoose.Schema(
         text: {
             type: String,
             required: true
+        },
+        // structured references for any documents the user drops
+        // before sending their chat message.
+        docRefs: {
+            type: [
+                {
+                    title: { type: String, default: '' },
+                    authors: { type: String, default: '' }
+                }
+            ],
+            default: undefined
         }
     },
     { timestamps: true }

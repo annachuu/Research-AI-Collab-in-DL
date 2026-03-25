@@ -274,10 +274,16 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         {
             setIsAIMode(true);
         } 
-        else if (trimmedValue === '' || !trimmedValue.startsWith('@')) 
+        else if (trimmedValue === '') 
         {
             setIsAIMode(false);
+            // Only clear selected docs when the user fully empties the message.
             setSelectedDocuments([]);
+        }
+        else
+        {
+            // Keep any dropped documents selected while the user types a regular message.
+            setIsAIMode(false);
         }
     };
 
@@ -348,17 +354,24 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         });
     };
 
-    const getSelectedDocsMentionText = () => {
-        if (!Array.isArray(selectedDocuments) || selectedDocuments.length === 0) return '';
+    const getSelectedDocRefs = () => {
+        if (!Array.isArray(selectedDocuments) || selectedDocuments.length === 0) return [];
 
-        const titles = selectedDocuments
-            .map((doc) => doc?.pnx?.display?.title?.[0] || doc?.pnx?.display?.title || 'Untitled')
-            .filter(Boolean);
+        return selectedDocuments
+            .map((doc) => {
+                const title = doc?.pnx?.display?.title?.[0] || doc?.pnx?.display?.title || 'Untitled';
+                const authors = doc?.pnx?.addata?.au
+                    ? (Array.isArray(doc.pnx.addata.au) ? doc.pnx.addata.au.join(', ') : doc.pnx.addata.au)
+                    : (doc?.pnx?.addata?.addau
+                        ? (Array.isArray(doc.pnx.addata.addau) ? doc.pnx.addata.addau.join(', ') : doc.pnx.addata.addau)
+                        : 'Unknown authors');
 
-        if (titles.length === 0) return '';
-
-        // Short reference block that will be appended to the outgoing chat message.
-        return `\n[References: ${titles.join(', ')}]`;
+                return {
+                    title,
+                    authors: authors || 'Unknown authors'
+                };
+            })
+            .filter((ref) => ref && ref.title);
     };
 
     const removeSelectedDocument = (indexToRemove) => {
@@ -436,7 +449,8 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         }
 
         const inputText = input.trim();
-        const mentionText = getSelectedDocsMentionText();
+        const docRefs = getSelectedDocRefs();
+        const docRefsForMsg = docRefs.length > 0 ? docRefs : undefined;
         const lowerInput = inputText.toLowerCase();
         const isAIMessage =
             lowerInput.startsWith('@ai') ||
@@ -456,7 +470,8 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
             {
                 username: currentUsername,
                 userIndex: 0,
-                text: inputText + mentionText,
+                text: inputText,
+                docRefs: docRefsForMsg,
                 createdAt: new Date().toISOString(),
                 isAIMessage: false
             };
@@ -555,6 +570,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                             queryId: queryId || undefined,
                             username: userMsg.username,
                             userIndex: userMsg.userIndex,
+                            docRefs: userMsg.docRefs,
                             text: userMsg.text,
                             createdAt: userMsg.createdAt
                         });
@@ -623,7 +639,8 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
             queryId: queryId || undefined,
             username: currentUsername,
             userIndex: calculatedUserIndex,
-            text: inputText + mentionText,
+            text: inputText,
+            docRefs: docRefsForMsg,
             createdAt: new Date().toISOString(),
             isAIMessage: false
         };
@@ -645,6 +662,8 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
             }, 100);
             setInput("");
             setIsAIMode(false);
+            // Clear after successful send so future messages don't keep referencing old drops.
+            setSelectedDocuments([]);
         }
         catch (error)
         {
@@ -729,7 +748,22 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                                             <span className={styles.user} style={{ color: userColor }}>
                                                 {msg.username}:
                                             </span>
-                                            <span className={styles.text}>{msg.text}</span>
+                                            <span className={styles.text}>
+                                                {Array.isArray(msg.docRefs) && msg.docRefs.length > 0 && (
+                                                    <>
+                                                        {msg.docRefs.map((ref, idx) => (
+                                                            <React.Fragment key={`${idx}-${ref?.title || 'doc'}`}>
+                                                                <strong>{ref?.title || 'Untitled'}</strong>
+                                                                {' — '}
+                                                                <strong>{ref?.authors || 'Unknown authors'}</strong>
+                                                                {idx < msg.docRefs.length - 1 ? <br /> : null}
+                                                            </React.Fragment>
+                                                        ))}
+                                                        <br />
+                                                    </>
+                                                )}
+                                                {msg.text}
+                                            </span>
                                         </div>
                                         {isOwnMessage && msg._id && (
                                             <button
@@ -786,7 +820,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                 <div
                     className={`${styles.dropZone} ${isDragOverDropZone ? styles.dropZoneActive : ''}`}
                 >
-                    <span className={styles.dropZoneText}>Drop here to reference</span>
+                    <span className={styles.dropZoneText}>Drop here</span>
                 </div>
 
                 {/* Single persistent wrapper and textarea so the input never remounts (avoids focus loss when suggestion appears/disappears) */}

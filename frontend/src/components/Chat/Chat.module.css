@@ -118,13 +118,14 @@
 
 .text
 {
-    display: inline;
+    display: block;
     margin-bottom: 0.25rem;
     word-wrap: break-word;
     overflow-wrap: break-word;
     word-break: break-word;
     max-width: 100%;
     font-size: 0.875rem;
+    white-space: pre-wrap;
 }
 
 .messageFooter
