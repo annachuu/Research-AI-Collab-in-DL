@@ -50,7 +50,7 @@ const getMessagesByUsername = async (req, res) => {
 const saveMessage = async (req, res) => {
     try 
     {
-        const { workspaceId, queryText, queryId, username, userIndex, text, createdAt } = req.body;
+        const { workspaceId, queryText, queryId, username, userIndex, text, createdAt, docRefs } = req.body;
         if (!workspaceId || queryText === undefined || queryText === null)
         {
             return res.status(400).json({ message: "workspaceId and queryText (search topic) are required" });
@@ -71,6 +71,7 @@ const saveMessage = async (req, res) => {
             username,
             userIndex,
             text,
+            docRefs,
             createdAt: createdAt || new Date()
         });
         res.status(201).json(msg);
