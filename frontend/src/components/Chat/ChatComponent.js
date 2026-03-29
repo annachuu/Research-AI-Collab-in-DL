@@ -4,20 +4,11 @@ import { CircularProgress, LinearProgress } from "@mui/material";
 import styles from "./Chat.module.css";
 import axios from 'axios'
 import { ResearchAIChatBridge } from "../../services/aiChatBridge";
-
-const User_Colours = 
-[
-    "#a6cee3",  // 1st user
-    "#1f78b4",  // 2nd user
-    "#b2df8a",  // 3rd user
-    "#33a02c",  // 4th user
-    "#fb9a99",  // 5th user
-    "#e31a1c",  // 6th user
-    "#fdbf6f",  // 7th user
-    "#ff7f00",  // 8th user
-    "#cab2d6",  // 9th user
-    "#6a3d9a"   // 10th user
-];
+import {
+    USER_COLOURS,
+    getColorIndexForUsername,
+    isHumanChatParticipant,
+} from "../../colours/userColors";
 
 const chat_backend_url = "http://localhost:5006/api/chat";
 
@@ -32,25 +23,6 @@ const AI_SUGGESTIONS = [
     "help me refine my query",
     "give me an overview of these papers",
 ];
-
-// Ensuring each username gets a unique colour that never repeats
-// Colors are assigned based on alphabetical order of usernames to ensure consistency
-const getColorIndexForUsername = (username, uniqueUsernamesSorted = []) =>
-{
-    if (!username) return 0;
-    
-    // Find the position of this username in the sorted unique usernames list
-    const usernameIndex = uniqueUsernamesSorted.indexOf(username);
-    
-    // If username is found, assign color based on its position
-    // This ensures each username always gets the same color and no duplicates
-    if (usernameIndex !== -1) {
-        return usernameIndex % User_Colours.length;
-    }
-    
-    // Fallback: if username not in list, use first color
-    return 0;
-};
 
 // function to normalize query text
 function normalizeQueryText(str) {
@@ -91,7 +63,6 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
 {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
-    const chatInputRef = useRef(null);
     const [isAIMode, setIsAIMode] = useState(false);
     const [isAILoading, setIsAILoading] = useState(false);
     const [selectedDocuments, setSelectedDocuments] = useState([]);
@@ -252,18 +223,6 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
     };
 
     // Handling @-agent detection and AI mode
-    // Auto-resize textarea so it grows with content and avoids internal scroll until max height
-    const resizeTextarea = () => {
-        const el = chatInputRef.current;
-        if (!el) return;
-        el.style.height = 'auto';
-        const capped = Math.min(el.scrollHeight, 160); // ~10rem max
-        el.style.height = `${Math.max(capped, 40)}px`;
-    };
-
-    useEffect(() => {
-        resizeTextarea();
-    }, [input]);
 
     const handleInputChange = (e) => {
         const value = e.target.value;
@@ -464,12 +423,14 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         if (isAIMessage) 
         {
             setIsAILoading(true);
+
+            const calculatedUserIndex = getColorIndexForUsername(currentUsername);
             
             // Add user message to chat
             const userMsg = 
             {
                 username: currentUsername,
-                userIndex: 0,
+                userIndex: calculatedUserIndex,
                 text: inputText,
                 docRefs: docRefsForMsg,
                 createdAt: new Date().toISOString(),
@@ -621,16 +582,8 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
             return;
         }
 
-        // Regular chat message handling
-        // Calculate userIndex based on username to ensure consistent color assignment
-        // Get all unique usernames from current messages, add current user if needed, and sort
-        const allUsernames = messages.map(msg => msg.username).filter(Boolean);
-        if (!allUsernames.includes(currentUsername)) 
-        {
-            allUsernames.push(currentUsername);
-        }
-        const uniqueUsernamesSorted = [...new Set(allUsernames)].sort();
-        const calculatedUserIndex = getColorIndexForUsername(currentUsername, uniqueUsernamesSorted);
+        // Regular chat message handling — same palette as typing, refs, AI prompt, and History
+        const calculatedUserIndex = getColorIndexForUsername(currentUsername);
 
         const normalizedTopic = normalizeQueryText(queryText);
         const newMsg = {
@@ -717,24 +670,20 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                     ref={messagesBoxRef}
                     onScroll={handleScroll}
                 >
-                    {(() => {
-                        const allUsernames = messages.map(msg => msg.username).filter(Boolean);
-                        const uniqueUsernamesSorted = [...new Set(allUsernames)].sort();
-
-                        return messages.map((msg, i) => {
+                    {messages.map((msg, i) => {
                             let colorIndex;
-                            if (msg.isAIMessage || msg.username === "AI Assistant") 
+                            if (!isHumanChatParticipant(msg.username, msg))
                             {
-                                colorIndex = User_Colours.length - 1;
+                                colorIndex = USER_COLOURS.length - 1;
                             } 
                             else 
                             {
                                 colorIndex = msg.username
-                                    ? getColorIndexForUsername(msg.username, uniqueUsernamesSorted)
+                                    ? getColorIndexForUsername(msg.username)
                                     : (msg.userIndex || 0);
-                                colorIndex = Math.max(0, Math.min(colorIndex, User_Colours.length - 1));
+                                colorIndex = Math.max(0, Math.min(colorIndex, USER_COLOURS.length - 1));
                             }
-                            const userColor = User_Colours[colorIndex];
+                            const userColor = USER_COLOURS[colorIndex];
                             const isOwnMessage = msg.username === currentUsername;
 
                             return (
@@ -759,6 +708,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                                                                 {idx < msg.docRefs.length - 1 ? <br /> : null}
                                                             </React.Fragment>
                                                         ))}
+                                                        <br />
                                                         <br />
                                                     </>
                                                 )}
@@ -789,8 +739,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                                     </div>
                                 </div>
                             );
-                        });
-                    })()}
+                        })}
                     <div ref={messagesEndRef} />
                 </div>
                 {isAILoading && (
@@ -843,7 +792,6 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                         ) : null;
                     })()}
                     <textarea
-                        ref={chatInputRef}
                         className={`${styles.input} ${styles.inputTextarea}`}
                         placeholder={isAIMode && getSuggestion(getQueryPart(input))?.suffix ? "Tab to accept suggestion" : isAIMode ? "Ask AI about the search results... (type for suggestions)" : ""}
                         value={input}
@@ -878,9 +826,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
 
                         return (
                             <div key={index} className={styles.selectedDocChip}>
-                                <div className={styles.selectedDocAvatar}>
-                                    
-                                </div>
+                                <div className={styles.selectedDocAvatar} />
                                 <div className={styles.selectedDocInfo}>
                                     <div className={styles.selectedDocTitle}>{title}</div>
                                     <div className={styles.selectedDocAuthors}>{authors}</div>

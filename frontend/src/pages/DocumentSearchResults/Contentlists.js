@@ -718,7 +718,7 @@ function ContentListsComponent() {
                                                 </div>
                                             </div>
                                         </div>
-                                        <SERPDocumentComponent doc={data} />
+                                        <SERPDocumentComponent doc={data} onDocDragStart={handleDocDragStart} />
                                     </div>
                                 ))}
 

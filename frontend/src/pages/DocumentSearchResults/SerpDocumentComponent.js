@@ -26,7 +26,7 @@ const buildFullDisplayUrl = (doc) => {
     )}&tab=${tab}&query=${query}&mode=${mode}`;
 };
 
-function SERPDocumentComponent({ doc }) {
+function SERPDocumentComponent({ doc, onDocDragStart }) {
     const [isReadMore, setIsReadMore] = useState(true);
 
     const readMoreHandler = (id) => {
@@ -63,7 +63,12 @@ function SERPDocumentComponent({ doc }) {
                 </div>
             </div>
             {/* Document Title wrapped in a clickable link */}
-            <h3 className="text-lg font-bold" id={"document-title-serp"}>
+            <h3
+                className="text-lg font-bold cursor-grab active:cursor-grabbing"
+                id={"document-title-serp"}
+                draggable
+                onDragStart={(event) => onDocDragStart?.(event, doc)}
+            >
                 <a href={fullDisplayUrl} target="_blank" rel="noopener noreferrer">
                     {doc.pnx.display.title[0]}
                 </a>

@@ -7,9 +7,11 @@ import AudioFileIcon from '@mui/icons-material/AudioFile';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import { useNavigate } from "react-router-dom";
 import documentService from "../../features/Document/documentService";
-import axios from 'axios';
-import { API_URL } from "../../config/env";
 import styles from "./timeline.module.css";
+import {
+  USER_COLOURS,
+  getColorIndexForUsername,
+} from "../../colours/userColors";
 
 // Date formatting helper functions
 const formatDate = (date) => {
@@ -74,66 +76,9 @@ const IconMapper = ({ format }) => {
   }
 };
 
-// User colors matching chat component
-const User_Colours = 
-[
-    "#a6cee3",  // 1st user
-    "#1f78b4",  // 2nd user
-    "#b2df8a",  // 3rd user
-    "#33a02c",  // 4th user
-    "#fb9a99",  // 5th user
-    "#e31a1c",  // 6th user
-    "#fdbf6f",  // 7th user
-    "#ff7f00",  // 8th user
-    "#cab2d6",  // 9th user
-    "#6a3d9a"   // 10th user
-];
-
-// Get color index for username (same logic as chat)
-const getColorIndexForUsername = (username, uniqueUsernamesSorted = []) => {
-    if (!username) return 0;
-    const usernameIndex = uniqueUsernamesSorted.indexOf(username);
-    if (usernameIndex !== -1) {
-        return usernameIndex % User_Colours.length;
-    }
-    return 0;
-};
-
-function normalizeQueryText(str) {
-  if (str == null || typeof str !== 'string') return '';
-  return str.trim().toLowerCase();
-}
-
 export default function UserTimeline({ queries, setPageLoading, setShowDetails, setDetails, queryId, workspaceId, queryText }) {
   const navigate = useNavigate();
   const [allDocuments, setAllDocuments] = useState([]);
-  const [chatMessages, setChatMessages] = useState([]);
-
-  // Fetch chat messages for this topic (for color assignment). Only when workspaceId + queryText are present.
-  useEffect(() => {
-    const normalized = normalizeQueryText(queryText);
-    if (!workspaceId || !normalized) {
-      setChatMessages([]);
-      return;
-    }
-
-    async function fetchChatMessages() {
-      try {
-        const chatApiUrl = API_URL + 'chat';
-        const res = await axios.get(chatApiUrl, {
-          params: { workspaceId, queryText: normalized }
-        });
-        setChatMessages(Array.isArray(res.data) ? res.data : []);
-      } catch (error) {
-        console.error("Failed to fetch chat messages for color assignment: ", error);
-        setChatMessages([]);
-      }
-    }
-
-    fetchChatMessages();
-    const interval = setInterval(fetchChatMessages, 3000);
-    return () => clearInterval(interval);
-  }, [workspaceId, queryText]);
 
   // Fetch documents for the current query from all users
   useEffect(() => {
@@ -226,12 +171,6 @@ export default function UserTimeline({ queries, setPageLoading, setShowDetails, 
   };
 
 
-  // Get unique usernames from BOTH chat messages AND documents for consistent color of the users, ensures the same user gets the same color in both chat and timeline
-  const chatUsernames = chatMessages.map(msg => msg.username).filter(Boolean);
-  const documentUsernames = allDocuments.map(doc => doc.userId?.username).filter(Boolean);
-  const allUsernames = [...chatUsernames, ...documentUsernames];
-  const uniqueUsernamesSorted = [...new Set(allUsernames)].sort();
-
   // Group documents by date
   const documentsByDate = {};
   allDocuments.forEach((doc) => {
@@ -276,8 +215,8 @@ export default function UserTimeline({ queries, setPageLoading, setShowDetails, 
                 const username = doc.userId?.username || 'Unknown User';
                 
                 // Get color for this user
-                const colorIndex = getColorIndexForUsername(username, uniqueUsernamesSorted);
-                const userColor = User_Colours[colorIndex];
+                const colorIndex = getColorIndexForUsername(username);
+                const userColor = USER_COLOURS[colorIndex];
 
                 return (
                   <div
