@@ -442,44 +442,6 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
             
             try 
             {
-                // Determine which agent should be used for this request
-                let explicitAgent = null;
-                if (lowerInput.startsWith('@reformulator')) explicitAgent = 'reformulator';
-                else if (lowerInput.startsWith('@gapdetector')) explicitAgent = 'gapDetector';
-                else if (lowerInput.startsWith('@summarizer')) explicitAgent = 'summarizer';
-                else if (lowerInput.startsWith('@ai')) explicitAgent = 'manager';
-
-                let agentKeyToUse = selectedAgentKey && selectedAgentKey !== 'manager'
-                    ? selectedAgentKey
-                    : (explicitAgent || 'manager');
-
-                // Strip any leading @tag from the user text to get the actual request
-                let aiPrompt = inputText;
-                if (lowerInput.startsWith('@ai')) 
-                {
-                    aiPrompt = inputText.substring(3).trim();
-                } 
-                else if (lowerInput.startsWith('@reformulator')) 
-                {
-                    aiPrompt = inputText.substring('@reformulator'.length).trim();
-                } 
-                else if (lowerInput.startsWith('@gapdetector')) 
-                {
-                    aiPrompt = inputText.substring('@gapdetector'.length).trim();
-                } 
-                else if (lowerInput.startsWith('@summarizer')) 
-                {
-                    aiPrompt = inputText.substring('@summarizer'.length).trim();
-                }
-
-                if (!aiPrompt) 
-                {
-                    setIsAILoading(false);
-                    setInput("");
-                    setIsAIMode(false);
-                    return;
-                }
-
                 // Prefer explicitly selected documents (from drag-and-drop) when available,
                 // otherwise fall back to all documents on the page
                 const safeDocuments = Array.isArray(documents) ? documents : [];
@@ -487,19 +449,36 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                     ? selectedDocuments
                     : safeDocuments;
 
-                // Use the bridge (with proxy inside) to talk to the AI model
-                const responseText = await aiChatBridge.sendResearchRequest({
-                    agentKeyToUse,
-                    aiPrompt,
+                // Manager–Worker orchestration (Puter): full message for @-routing; dropdown forces explicit worker
+                const explicitAgentKey =
+                    selectedAgentKey && selectedAgentKey !== "manager"
+                        ? selectedAgentKey
+                        : undefined;
+
+                const aiResult = await aiChatBridge.sendResearchRequest({
+                    message: inputText,
                     documents: docsForAI,
-                    workspaceHistory
+                    workspaceHistory,
+                    workspaceId,
+                    queryId,
+                    explicitAgentKey,
+                    recentMessages: [...messages, userMsg]
                 });
 
-                // Choose display name based on agent
-                let aiUsername = "AI Assistant";
-                if (agentKeyToUse === 'reformulator') aiUsername = "Query Reformulator";
-                else if (agentKeyToUse === 'gapDetector') aiUsername = "Knowledge Gap Detector";
-                else if (agentKeyToUse === 'summarizer') aiUsername = "Result Summarizer";
+                const responseText =
+                    aiResult?.content ||
+                    "Sorry, I could not produce a response.";
+
+                let aiUsername = "Research Manager";
+                if (aiResult?.type === "SUCCESS" && aiResult?.agentKey) {
+                    if (aiResult.agentKey === "reformulator") aiUsername = "Query Reformulator";
+                    else if (aiResult.agentKey === "gapDetector") aiUsername = "Knowledge Gap Detector";
+                    else if (aiResult.agentKey === "summarizer") aiUsername = "Result Summarizer";
+                } else if (aiResult?.type === "CLARIFICATION") {
+                    aiUsername = "Research Manager";
+                } else if (aiResult?.type === "ERROR") {
+                    aiUsername = "AI Assistant";
+                }
 
 
                 // Add AI response to chat

@@ -36,7 +36,7 @@ class AIOrchestrator {
         instruction:
           'You are a Knowledge Gap Detector in a prompt-enforced multi-agent simulation. ' +
           'You are a Worker agent; you never re-route or delegate. ' +
-          'Compare the USER REQUEST to the SAVED DOCUMENT ABSTRACTS (and their titles) from the current workspace. ' +
+          'Compare the USER REQUEST to gapAbstractsOnly.workspaceAbstracts and optional gapAbstractsOnly.pageAbstracts (abstract text only). ' +
           'Identify research themes, perspectives, user populations, methods, or theories that appear underrepresented or missing. ' +
           'Focus your reasoning ONLY on the abstracts provided (do not assume access to full texts). ' +
           'Produce an explicit list of potential knowledge gaps that could guide future literature search.'
@@ -141,9 +141,10 @@ class AIOrchestrator {
       '- Workers are specialized agents and are described in the "agents" registry.\n' +
       '- You NEVER perform the research work yourself; you ONLY decide which worker should act or whether to ask the user for clarification.\n\n' +
       'STATE & CONTEXT:\n' +
-      '- You receive a JSON payload containing: { userPrompt, context: { history, artifacts, workspace, registry } }.\n' +
+      '- You receive a JSON payload containing: { userPrompt, context: { history, artifacts, pageArtifacts, workspace, registry } }.\n' +
       '- history: prior queries and chats in this workspace.\n' +
       '- artifacts: titles and abstracts of saved documents in this workspace.\n' +
+      '- pageArtifacts: optional titles and abstracts from a client-side search view when provided.\n' +
       '- registry: metadata about available agents so you know their capabilities.\n' +
       '- You must treat every decision as context-aware and grounded in this information.\n\n' +
       'AGENTS (Workers):\n' +
@@ -166,6 +167,7 @@ class AIOrchestrator {
       context: {
         history: context.history || [],
         artifacts: context.artifacts || [],
+        pageArtifacts: context.pageArtifacts || [],
         workspace: context.workspace || {},
         registry: this.getAgentsMetadata()
       }
@@ -246,22 +248,46 @@ class AIOrchestrator {
   async executeWorker(agent, userPrompt, context, meta = {}) 
   {
     // note: workerInput is intentionally narrow to keep requests context-aware but token-efficient.
-    // For artifacts, we only pass titles and abstracts (no full-texts).
+    // For gapDetector, send abstracts only (plus optional page abstracts) to save tokens and maintain focus.
+    const baseArtifacts = (context.artifacts || []).map((a) => ({
+      id: a.id,
+      title: a.title,
+      abstract: a.abstract
+    }));
+    const pageArtifacts = (context.pageArtifacts || []).map((a) => ({
+      title: a.title,
+      abstract: a.abstract
+    }));
+
+    const gapAbstractsOnly =
+      agent.key === 'gapDetector'
+        ? {
+            workspaceAbstracts: baseArtifacts.map((a) => a.abstract).filter(Boolean),
+            pageAbstracts: pageArtifacts.map((a) => a.abstract).filter(Boolean)
+          }
+        : null;
+
+    const workerContext =
+      agent.key === 'gapDetector'
+        ? {
+            history: context.history || [],
+            gapAbstractsOnly,
+            workspace: context.workspace || {}
+          }
+        : {
+            history: context.history || [],
+            artifacts: baseArtifacts,
+            pageArtifacts,
+            workspace: context.workspace || {}
+          };
+
     const workerInput = {
       agent: {
         key: agent.key,
         name: agent.name
       },
-      userPrompt,
-      context: {
-        history: context.history || [],
-        artifacts: (context.artifacts || []).map((a) => ({
-          id: a.id,
-          title: a.title,
-          abstract: a.abstract
-        })),
-        workspace: context.workspace || {}
-      },
+      userPrompt: userPrompt.replace(/^\s*@\w+\s*/i, '').trim() || userPrompt,
+      context: workerContext,
       meta
     };
 
