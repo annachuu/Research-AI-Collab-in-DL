@@ -63,11 +63,16 @@ function WorkspaceDetails() {
         timelineQueries.forEach(query => 
         {
             const topic = query.searchTopic || query.query || 'Untitled';
-            if (!grouped[topic]) 
+            const normalizedTopic = topic.trim().toLowerCase();
+            
+            if (!grouped[normalizedTopic]) 
             {
-                grouped[topic] = [];
+                grouped[normalizedTopic] = {
+                    display: topic.trim(),
+                    queries: []
+                };
             }
-            grouped[topic].push(query);
+            grouped[normalizedTopic].queries.push(query);
         });
         return grouped;
     }, [timelineQueries]);
@@ -75,9 +80,17 @@ function WorkspaceDetails() {
     // Convert to array of objects
     const topicLinks = useMemo(() => 
     {
-        return Object.entries(topicsGrouped).map(([key, value]) => ({ [key]: value }));
+        return Object.entries(topicsGrouped).map(([key, value]) => ({ key, display: value.display, queries: value.queries }));
     }, [topicsGrouped]);
 
+
+    const formatTitle = (text) => {
+        return text
+            .toLowerCase()
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
     // New Effects
     // Initialize the selected topic queries
     // useEffect(() => 
@@ -125,14 +138,14 @@ function WorkspaceDetails() {
         setSelectedTopicQueries(null);
     }, [id]);
 
-    // Update selected queries when highlighted topic change
-    useEffect(() => 
-    {
-        if (highlightedTopic && topicsGrouped[highlightedTopic]) 
-        {
-            setSelectedTopicQueries(topicsGrouped[highlightedTopic]);
-        }
-    }, [highlightedTopic, topicsGrouped]);
+    // // Update selected queries when highlighted topic change
+    // useEffect(() => 
+    // {
+    //     if (highlightedTopic && topicsGrouped[highlightedTopic]) 
+    //     {
+    //         setSelectedTopicQueries(topicsGrouped[highlightedTopic]);
+    //     }
+    // }, [highlightedTopic, topicsGrouped]);
 
     useEffect(()=>
     {
@@ -152,16 +165,6 @@ function WorkspaceDetails() {
             setRefetchQueries(false);
         }
     }, [refetchQueries, dispatch, id])
-
-
-    useEffect(()=>{
-        dispatch(getWorkspaceDetails(id))
-        // console.log(singleWorkspace)
-        
-        return() => {
-            dispatch(resetWorkspaceData())
-        }
-    }, [dispatch, id])
 
     useEffect(()=>{
        // dispatch(setSelectedWorkspace(singleWorkspace.workspace))
@@ -247,11 +250,15 @@ function WorkspaceDetails() {
         localStorage.setItem('query', normalizedTopic);
     } 
 
-    const handleTopicClick = (topic, queries) => 
+    const handleTopicClick = (topicKey, topicGroup) => 
     {
-        setSelectedTopicQueries(queries);
-        setHighlightedTopic(topic);
-        const normalizedTopic = (topic || '').trim();
+        // setSelectedTopicQueries(queries);
+        // setHighlightedTopic(topic);
+
+        setHighlightedTopic(topicKey);
+        setSelectedTopicQueries(topicGroup);
+
+        const normalizedTopic = (topicKey || '').trim();
         localStorage.setItem('searchTopic', normalizedTopic);
         localStorage.setItem('query', normalizedTopic);
     };
@@ -350,11 +357,12 @@ function WorkspaceDetails() {
                                         <div className={styles.topicsSidebar}>
                                             <div>
                                                 {topicLinks.map((link) => {
-                                                    const entries = Object.entries(link);
-                                                    const [key, value] = entries[0];
+                                                    // const entries = Object.entries(link);
+                                                    // const [key, value] = entries[0];
+                                                    const { key, display, queries: value } = link;
                                                     const latestQuery = value.length > 0 ? value[0] : undefined;
                                                     const latestQueryRepresentation = latestQuery ? formatDateTime(latestQuery.updatedAt) : '';
-                                                    const isHighlighted = highlightedTopic === key;
+                                                    const isHighlighted = highlightedTopic?.toLowerCase() === key;
                                                     // const isOngoing = localStorage.getItem('searchTopic') === key;
                                                     
                                                     return (
@@ -365,7 +373,7 @@ function WorkspaceDetails() {
                                                             >
                                                                 <FaRegFileLines className={styles.topicIcon} />
                                                                 <div className={styles.topicContent}>
-                                                                    <span className={styles.topicName}>{key}</span>
+                                                                    <span className={styles.topicName}>{formatTitle(display)}</span>
                                                                     {/* Ongoing symbol */}
                                                                     {/* {isOngoing && (                                                 
                                                                         <span className={styles.ongoingChip}>
