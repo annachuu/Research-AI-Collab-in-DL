@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from "react";
 import { useRef } from "react";
 import { useSelector, useDispatch } from 'react-redux';
@@ -12,7 +13,7 @@ import SERPDocumentComponent from "./SerpDocumentComponent";
 import ChatComponent from "../../components/Chat/ChatComponent";
 import UserTimeline from "../../components/History/timeline";
 
-import { getSearchResultLists, resetSearchResults, getDocumentThumbnailUrl } from '../../features/contents/contentResultsSlice';
+import { getSearchResultLists, resetSearchResults } from '../../features/contents/contentResultsSlice';
 import { createQuery, getQueryDetails, resetWorkspaceData, getWorkspaceDetails } from "../../features/workspace/workspaceSlice";
 import {
     saveDocumentToWorkspace, 
@@ -25,7 +26,8 @@ import {
     resetDocument,
     toggleDocumentSave
     } from '../../features/Document/documentSlice';
-import { getRilDocumentLists, resetRilData, getRilDocumentCount, saveDocumentToRil, removeDocumentFromRil } from "../../features/RIL/rilSlice";
+import { getRilDocumentLists, resetRilData, getRilDocumentCount } from "../../features/RIL/rilSlice";
+// saveDocumentToRil, removeDocumentFromRil — used only in commented legacy addOrRemoveRils block
 
 import styles from "./ContentListings.module.css";
 import SearchComponent from "../../components/Search/Search";
@@ -37,7 +39,7 @@ function ContentListsComponent() {
     const navigate = useNavigate(); 
     const scrollToTopRef = useRef();
 
-    const {contents, isSERPLoading,  isNewSearchKeyword, isLoading, isError, message, thumbnail} = useSelector((state) => state.content)
+    const {contents, isSERPLoading,  isNewSearchKeyword, isError, message} = useSelector((state) => state.content)
     const { isQueryDetailSuccess, queryDetailObject, singleQuery, quries, isQueryCreateSuccess, singleWorkspace, isWorkpsaceDetailSuccess} = useSelector((state) => state.workspace);
     const {documents, isDocumentArraySuccess, isAddDocumentSuccess, isRemoveDocumentSuccess, isToggleDocumentSuccess} = useSelector((state) => state.document);
     const { ril_documents, isRilArraySuccess, isAddToRilSuccess, isRemoveFromRilSuccess } = useSelector((state) => state.ril);
@@ -53,10 +55,10 @@ function ContentListsComponent() {
     
     // const [isDocSaved, setIsDocSaved] = useState(false)
     // const [tempDocs, setTempDoc] = useState([])
-    const [tempRils, setTempRils] = useState([])
-    const [pageLoading, setPageLoading] = useState(false)
-    const [showDetails, setShowDetails] = useState(false)
-    const [details, setDetails] = useState(null)
+    const [, setTempRils] = useState([])
+    const [, setPageLoading] = useState(false)
+    const [, setShowDetails] = useState(false)
+    const [, setDetails] = useState(null)
     
     const limitperpage = 10;
     const initialPagination = {"offset": 0, "limit": limitperpage}
@@ -100,9 +102,9 @@ function ContentListsComponent() {
         return capturedDocs.find(d => d.documentId === recordId);
     };
 
-    const isSaved = (recordId) => {
-        return !!getSavedDoc(recordId);
-    };
+    // const isSaved = (recordId) => {
+    //     return !!getSavedDoc(recordId);
+    // };
 
     const isActiveSaved = (recordId) => {
         const doc = getSavedDoc(recordId);
@@ -470,32 +472,31 @@ function ContentListsComponent() {
         }
     }
 
+    /* Legacy RIL toggle (UI paths commented out above)
     const addOrRemoveRils = (doc, selectedDoc) => {
         console.log('add or remove ril')
-        // resetDocumentSuccessStatus();
 
-        if(selectedDoc !== undefined){                        
+        if(selectedDoc !== undefined){
             const DOC_TEMP_REMOVE ={
                 "id": selectedDoc._id
             }
-    
+
             console.log('DOC_TEMP_REMOVE ', DOC_TEMP_REMOVE)
-            dispatch(removeDocumentFromRil(DOC_TEMP_REMOVE))            
-        }else{            
+            dispatch(removeDocumentFromRil(DOC_TEMP_REMOVE))
+        }else{
             const DOC_TEMP ={
                 "documentId": doc.pnx.control.recordid[0],
                 "userId": user.data._id,
-                // "queryName": queryDetailObject.query,
                 "queryName": QUERY_STRING,
                 "queryId": queryDetailObject._id,
                 "title": doc.pnx.display.title[0],
                 "doc_type": doc.pnx.display.type[0],
                 "doc_authors": doc.pnx.addata.au,
                 "doc_abstract": (doc.pnx.addata.abstract !== undefined) ? doc.pnx.addata.abstract[0] : '',
-                "doc_date": (doc.pnx.display.creationdate !== undefined) ? doc.pnx.display.creationdate : doc.pnx.facets.creationdate,                
+                "doc_date": (doc.pnx.display.creationdate !== undefined) ? doc.pnx.display.creationdate : doc.pnx.facets.creationdate,
                 "doc_thumbnail" : (doc.pnx.addata.isbn !== undefined) ? doc.pnx.addata.isbn[0] : (doc.pnx.addata.doi !== undefined) ? doc.pnx.addata.doi[0] : undefined,
                 "thumbnail_type": (doc.pnx.addata.isbn !== undefined) ? 'isbn' : (doc.pnx.addata.doi !== undefined) ? 'doi' : undefined,
-                "doc_partof": (doc.pnx.display.ispartof !== undefined) ? doc.pnx.display.ispartof[0] : '', 
+                "doc_partof": (doc.pnx.display.ispartof !== undefined) ? doc.pnx.display.ispartof[0] : '',
                 "doc_peerreview" : (doc.pnx.display.lds50 !== undefined) ? true : false,
                 "doc_openaccess": (doc.pnx.addata.oa !== undefined) ? true : false,
                 "doc_fulltext": (doc.delivery !== undefined) ? doc.delivery.availability[0] : undefined,
@@ -504,13 +505,14 @@ function ContentListsComponent() {
                 "doc_downloadPdf": '',
                 "doc_url":buildFullDisplayUrl(doc)
             }
-    
+
             console.log('DOC_TEMP_ ', DOC_TEMP)
-            
+
             dispatch(saveDocumentToRil(DOC_TEMP))
         }
-    }    
-    
+    }
+    */
+
     useEffect(() => { 
         console.log('add ril_', isAddToRilSuccess)       
         if(isAddToRilSuccess || isRemoveFromRilSuccess){

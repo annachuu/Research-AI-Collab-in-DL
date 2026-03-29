@@ -54,8 +54,8 @@ const chatService = {
     }
 };
 
-// Check if Puter AI is available in the browser
-const isPuterAIAvailable = typeof window !== 'undefined' && window.puter?.ai;
+// Check if Puter AI is available in the browser (reserved for future UI gating)
+// const isPuterAIAvailable = typeof window !== 'undefined' && window.puter?.ai;
 
 const aiChatBridge = new ResearchAIChatBridge();
 
@@ -67,7 +67,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
     const [isAILoading, setIsAILoading] = useState(false);
     const [selectedDocuments, setSelectedDocuments] = useState([]);
     const [isDragOverDropZone, setIsDragOverDropZone] = useState(false);
-    const [availableAgents, setAvailableAgents] = useState([
+    const [availableAgents] = useState([
         { key: 'manager', name: 'Manager (auto)' },
         { key: 'reformulator', name: 'Query Reformulator' },
         { key: 'gapDetector', name: 'Knowledge Gap Detector' },
@@ -191,7 +191,6 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
     // Get the "query part" of input after the @-command (e.g. "@ai " -> "", "@ai ref" -> "ref")
     const getQueryPart = (value) => {
         const v = value || '';
-        const lower = v.toLowerCase();
         const patterns = [/^@ai\s*/i, /^@reformulator\s*/i, /^@gapdetector\s*/i, /^@summarizer\s*/i];
         let rest = v;
         for (const p of patterns) 
@@ -470,13 +469,18 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                     "Sorry, I could not produce a response.";
 
                 let aiUsername = "Research Manager";
-                if (aiResult?.type === "SUCCESS" && aiResult?.agentKey) {
+                if (aiResult?.type === "SUCCESS" && aiResult?.agentKey) 
+                {
                     if (aiResult.agentKey === "reformulator") aiUsername = "Query Reformulator";
                     else if (aiResult.agentKey === "gapDetector") aiUsername = "Knowledge Gap Detector";
                     else if (aiResult.agentKey === "summarizer") aiUsername = "Result Summarizer";
-                } else if (aiResult?.type === "CLARIFICATION") {
+                } 
+                else if (aiResult?.type === "CLARIFICATION") 
+                {
                     aiUsername = "Research Manager";
-                } else if (aiResult?.type === "ERROR") {
+                } 
+                else if (aiResult?.type === "ERROR") 
+                {
                     aiUsername = "AI Assistant";
                 }
 

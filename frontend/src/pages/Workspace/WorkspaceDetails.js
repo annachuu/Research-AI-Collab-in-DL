@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useMemo} from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FaChevronLeft, FaRegFileLines, FaMagnifyingGlass, FaXmark } from "react-icons/fa6";
+import { FaChevronLeft, FaRegFileLines, FaMagnifyingGlass } from "react-icons/fa6";
 
 import { getWorkspaceDetails, createQuery, setSelectedWorkspace, resetWorkspaceData } from '../../features/workspace/workspaceSlice';
 import {  setDocumentRemovedSuccess } from '../../features/Document/documentSlice';
@@ -192,7 +192,6 @@ function WorkspaceDetails() {
         console.log('details_', details)
         const normalizedTopic = (details.query || '').trim();
         localStorage.setItem('query', normalizedTopic)
-        // Persist the "Workspace: ..." breadcrumb to match this query/topic.
         localStorage.setItem('wpname', normalizedTopic)
         localStorage.setItem('searchTopic', normalizedTopic);
         setTimeout(() => {
@@ -356,7 +355,7 @@ function WorkspaceDetails() {
                                                     const latestQuery = value.length > 0 ? value[0] : undefined;
                                                     const latestQueryRepresentation = latestQuery ? formatDateTime(latestQuery.updatedAt) : '';
                                                     const isHighlighted = highlightedTopic === key;
-                                                    const isOngoing = localStorage.getItem('searchTopic') === key;
+                                                    // const isOngoing = localStorage.getItem('searchTopic') === key;
                                                     
                                                     return (
                                                         <div key={key} className={styles.topicItem}>

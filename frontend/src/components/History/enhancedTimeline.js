@@ -7,6 +7,8 @@ import AudioFileIcon from '@mui/icons-material/AudioFile';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import { useNavigate } from "react-router-dom";
 import documentService from '../../features/Document/documentService';
+// import axios from 'axios';
+// import { API_URL } from "../../config/env";
 import styles from "./enhancedTimeline.module.css";
 import {
     USER_COLOURS,
@@ -82,9 +84,9 @@ const IconMapper = ({ format }) => {
 export default function UserTimeline({ queries, setPageLoading, setShowDetails, setDetails, queryText }) 
 {
     const navigate = useNavigate();
-    const [removedDocs, setRemovedDocs] = useState({});
+    // const [removedDocs, setRemovedDocs] = useState({});
     const [allDocumentsByQuery, setAllDocumentsByQuery] = useState({});
-    const [loadingDocuments, setLoadingDocuments] = useState(false);
+    const [, setLoadingDocuments] = useState(false);
 
     // Fetch documents from all users for each query
     useEffect(() => {
@@ -246,7 +248,6 @@ export default function UserTimeline({ queries, setPageLoading, setShowDetails, 
             {/*{queries.map((query) => { */}
             {deduplicatedQueries.map((query) => {
                 const initialSearch = formatDateTime(query.createdAt);
-                let previousDate = null;
                 
                 // // Use documents from all users instead of just query.documents
                 //const documentsToShow = allDocumentsByQuery[query._id] || query.documents || [];
@@ -261,7 +262,6 @@ export default function UserTimeline({ queries, setPageLoading, setShowDetails, 
                     {/* {query.documents?.map((doc) => { */}
                     {documentsToShow.map((doc) => {
                     const timechanger = formatTime(doc.createdAt || doc.updatedAt || new Date());
-                    previousDate = doc.updatedAt;
                     const docTitle = doc.title || doc.docdata?.Title || 'Untitled Document';
                     const docFormat = doc.doc_type || doc.docdata?.Format || doc.docdata?.doc_type || '';
                     const controlNumber = doc.documentId || doc.ControlNumber || doc._id;
