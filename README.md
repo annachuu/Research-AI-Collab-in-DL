@@ -8,27 +8,34 @@ A research project that supports development of a AI-augmented collaborative sea
 **Multi User Chat Box System**
 - Drag & Drop Features
 - Colour Coded Users
+- Auto-Scroll & Timestamped
 
 **History & Workspace Features**
 - Timelines
 - Document Tracking
 
-**Puter AI Implementation**
+**Puter AI Implementation into Chat**
 - Backend AI Orchestrator System
 - Implicit & Explicit Routing
 - Send Data (Documents, Workspace History) to AI
 
+**Backend AI System**
+- Manager-Worker Architecture for AI Orchestrator
+- Implicit & Explicit Routing
+
 **AI Capabilities**
-- Prompt Engineering
+- Prompt Engineering with Role-Based Behaviours
+- Clarification
 
 **Multi-Agent AI System**
-- Manager (auto)
+- Manager @ai
 - Reformulator @reformulator
 - Gap Detector @gapDetector
 - Summarizer @summarizer
 
 **AI Architecture Patterns**
-- Bridge Patytern & Proxy Pattern
+- Bridge Pattern
+- Proxy Pattern
 
 
 ## Project Timeline
