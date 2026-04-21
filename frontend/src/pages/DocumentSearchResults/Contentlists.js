@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from "react";
 import { useRef } from "react";
 import { useSelector, useDispatch } from 'react-redux';
@@ -13,7 +12,7 @@ import SERPDocumentComponent from "./SerpDocumentComponent";
 import ChatComponent from "../../components/Chat/ChatComponent";
 import UserTimeline from "../../components/History/timeline";
 
-import { getSearchResultLists, resetSearchResults } from '../../features/contents/contentResultsSlice';
+import { getSearchResultLists, resetSearchResults, getDocumentThumbnailUrl } from '../../features/contents/contentResultsSlice';
 import { createQuery, getQueryDetails, resetWorkspaceData, getWorkspaceDetails } from "../../features/workspace/workspaceSlice";
 import {
     saveDocumentToWorkspace, 
@@ -26,8 +25,7 @@ import {
     resetDocument,
     toggleDocumentSave
     } from '../../features/Document/documentSlice';
-import { getRilDocumentLists, resetRilData, getRilDocumentCount } from "../../features/RIL/rilSlice";
-// saveDocumentToRil, removeDocumentFromRil — used only in commented legacy addOrRemoveRils block
+import { getRilDocumentLists, resetRilData, getRilDocumentCount, saveDocumentToRil, removeDocumentFromRil } from "../../features/RIL/rilSlice";
 
 import styles from "./ContentListings.module.css";
 import SearchComponent from "../../components/Search/Search";
@@ -165,7 +163,8 @@ function ContentListsComponent() {
             setCapturedDocs(queryDetailObject.documents)
             const savedTopic = (queryDetailObject.query || queryDetailObject.workspaceName || '').trim()
             setCurrentWorkspace(savedTopic)
-            // Restore breadcrumb from the saved search topic.
+
+            // Restore breadcrumb from the saved search topic
             localStorage.setItem('wpname', savedTopic)
             localStorage.setItem('searchTopic', savedTopic)
             const user_data = {
@@ -221,7 +220,8 @@ function ContentListsComponent() {
         console.log(currentWorkspace)
         if(isNewSearchKeyword !== null){
             const newTopic = (isNewSearchKeyword.keyword || '').trim()
-            // Keep the breadcrumb aligned with the latest search topic.
+            
+            // Keep the breadcrumb aligned with the latest search topic
             setCurrentWorkspace(newTopic)
             localStorage.setItem('wpname', newTopic)
             localStorage.setItem('searchTopic', newTopic)
@@ -472,7 +472,7 @@ function ContentListsComponent() {
         }
     }
 
-    /* Legacy RIL toggle (UI paths commented out above)
+    /* (UI paths commented out above)
     const addOrRemoveRils = (doc, selectedDoc) => {
         console.log('add or remove ril')
 

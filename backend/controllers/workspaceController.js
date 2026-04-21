@@ -342,10 +342,8 @@ const getWorkspaceDetail = asyncHandler(async (req, res) => {
             return res.status(404).json({ success: false, error: 'Workspace not found' });
         }
 
-        // Get queries from ALL workspaces instead of just the current workspace
-        // const queries = await Query.find({ workspaceId });
-        // Get queries from ALL workspaces instead of just the current workspace      // getting query of just current workspace
-        const queries = await Query.find({});
+        // Only return queries that belong to this workspace
+        const queries = await Query.find({ workspaceId });
         const querySize = queries.length;
         const docSize = await Document.countDocuments({ queryId: { $in: queries.map(query => query._id) } });
 

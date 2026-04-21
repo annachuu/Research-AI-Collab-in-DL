@@ -37,9 +37,8 @@ function SearchComponent() {
         event.preventDefault();  
         const normalizedKeyword = searchKeyword.trim();
         localStorage.setItem('query', normalizedKeyword);
-        // Persist the "Workspace: ..." breadcrumb to match the current search topic.
+        // breadcrumb to match the current search topic
         localStorage.setItem('wpname', normalizedKeyword);
-        // Used elsewhere to indicate ongoing topic (if/when enabled in the UI).
         localStorage.setItem('searchTopic', normalizedKeyword);
 
         const TEMP = {
@@ -51,7 +50,7 @@ function SearchComponent() {
             'query': normalizedKeyword,
             'userId': user.data._id,
             'workspaceId': workspaceId,
-            // Store the search topic as the query's workspaceName so the content-list breadcrumb restores correctly.
+            // Store the search topic as the query's workspaceName so the content-list breadcrumb restores correctly
             'workspaceName': normalizedKeyword,
             'documents': []
         }

@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useMemo} from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FaChevronLeft, FaRegFileLines, FaMagnifyingGlass } from "react-icons/fa6";
+import { FaChevronLeft, FaRegFileLines, FaMagnifyingGlass, FaXmark } from "react-icons/fa6";
 
 import { getWorkspaceDetails, createQuery, setSelectedWorkspace, resetWorkspaceData } from '../../features/workspace/workspaceSlice';
 import {  setDocumentRemovedSuccess } from '../../features/Document/documentSlice';
@@ -208,14 +208,14 @@ function WorkspaceDetails() {
         event.preventDefault();       
         const normalizedTopic = searchInput.trim();
         localStorage.setItem('query', normalizedTopic)
-        // Persist the "Workspace: ..." breadcrumb to match this search topic.
+        // breadcrumb to match this search topic
         localStorage.setItem('wpname', normalizedTopic)
         localStorage.setItem('searchTopic', normalizedTopic);
         const queryData = {
             'query': normalizedTopic,
             'userId': user.data._id,
             'workspaceId': id,
-            // Store the search topic so Contentlists.js can restore the breadcrumb.
+            // search topic so Contentlists.js can restore the breadcrumb
             'workspaceName': normalizedTopic,
             'documents': []
         }        
