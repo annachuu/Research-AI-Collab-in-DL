@@ -242,6 +242,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         else if (trimmedValue === '') 
         {
             setIsAIMode(false);
+            setSelectedAgentKey('manager');
             // Only clear selected docs when the user fully empties the message.
             setSelectedDocuments([]);
         }
@@ -249,6 +250,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         {
             // Keep any dropped documents selected while the user types a regular message.
             setIsAIMode(false);
+            setSelectedAgentKey('manager');
         }
     };
 
@@ -418,12 +420,12 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         const docRefsForMsg = docRefs.length > 0 ? docRefs : undefined;
         const lowerInput = inputText.toLowerCase();
         const isAIMessage =
+            // Only treat as AI when the user explicitly invoked it via @-mention in the textbox
+            // (The dropdown should not force AI mode for normal chat messages)
             lowerInput.startsWith('@ai') ||
             lowerInput.startsWith('@reformulator') ||
             lowerInput.startsWith('@gapdetector') ||
-            lowerInput.startsWith('@summarizer') ||
-            // Also treat as AI if a specific agent is selected
-            (selectedAgentKey && selectedAgentKey !== 'manager');
+            lowerInput.startsWith('@summarizer');
 
         // If AI is requested, handle with AI bridge/proxy (browser-side)
         if (isAIMessage) 
