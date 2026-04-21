@@ -254,6 +254,7 @@ class AIOrchestrator {
       title: a.title,
       abstract: a.abstract
     }));
+    
     const pageArtifacts = (context.pageArtifacts || []).map((a) => ({
       title: a.title,
       abstract: a.abstract

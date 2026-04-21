@@ -205,6 +205,13 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         return rest;
     };
 
+    const agentKeyToMention = (agentKey) => {
+        if (agentKey === 'reformulator') return '@reformulator';
+        if (agentKey === 'gapDetector') return '@gapDetector';
+        if (agentKey === 'summarizer') return '@summarizer';
+        return '@ai';
+    };
+
     // Get suggestion suffix when in AI mode: first suggestion that starts with the query part (light-gray until Tab accept)
     const getSuggestion = (queryPart) => {
         if (!queryPart || !queryPart.length) 
@@ -835,7 +842,17 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                     </label>
                     <select
                         value={selectedAgentKey}
-                        onChange={(e) => setSelectedAgentKey(e.target.value)}
+                        onChange={(e) => {
+                            const nextKey = e.target.value;
+                            setSelectedAgentKey(nextKey);
+
+                            // Keeping the @ mention in the text area consistent with the selected agent by user
+                            // Preserve whatever the user already typed after the mention
+                            const nextMention = agentKeyToMention(nextKey);
+                            const rest = getQueryPart(input);
+                            const nextInput = `${nextMention} ${rest || ''}`;
+                            setInput(nextInput);
+                        }}
                         style={{ fontSize: '0.75rem', padding: '0.25rem' }}
                         disabled={isAILoading}
                     >
