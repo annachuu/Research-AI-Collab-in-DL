@@ -284,7 +284,7 @@ function WorkspaceDetails() {
                 <div className='main_element_container'>
                     
                     <div className='flex justify-center'>                 
-                        <form onSubmit={submitFormHandler} className={`${styles.cw_42} ${styles.search_bar}`}>
+                        {/* <form onSubmit={submitFormHandler} className={`${styles.cw_42} ${styles.search_bar}`}>
                             <div className={`flex rounded-full shadow appearance-none focus:outline-none focus:shadow-outline w-full ${styles.search_input}`}>
                                 <div className="ltr">
                                     <input className={`rounded-s-full w-full px-4 py-3 text-slate-500 leading-tight focus:outline-none focus:shadow-outline`} 
@@ -301,7 +301,7 @@ function WorkspaceDetails() {
                                 </div>
                             </div>
                             <p className='mt-2 ml-4'>Create a new search task</p>
-                        </form>  
+                        </form>   */}
                     </div>
                     
                     <div className='mt-14'>
