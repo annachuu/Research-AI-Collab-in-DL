@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import SearchIcon from '@mui/icons-material/Search';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import NewspaperIcon from '@mui/icons-material/Newspaper';
@@ -16,7 +16,9 @@ import {
 // Date formatting helper functions
 const formatDate = (date) => {
   if (!date) return '';
+
   const d = new Date(date);
+
   return d.toLocaleDateString('en-US', { 
     year: 'numeric', 
     month: 'short', 
@@ -26,7 +28,9 @@ const formatDate = (date) => {
 
 const formatDateTime = (date) => {
   if (!date) return '';
+
   const d = new Date(date);
+
   return d.toLocaleDateString('en-US', { 
     year: 'numeric', 
     month: 'short', 
@@ -39,7 +43,9 @@ const formatDateTime = (date) => {
 
 const formatTime = (date) => {
   if (!date) return '';
+
   const d = new Date(date);
+  
   return d.toLocaleTimeString('en-US', { 
     year: 'numeric', 
     month: 'short', 
@@ -79,6 +85,24 @@ const IconMapper = ({ format }) => {
 export default function UserTimeline({ queries, setPageLoading, setShowDetails, setDetails, queryId, workspaceId, queryText }) {
   const navigate = useNavigate();
   const [allDocuments, setAllDocuments] = useState([]);
+
+  const currentQuery = useMemo(() => {
+    if (!Array.isArray(queries) || !queryId) return null;
+
+    return queries.find((q) => q?._id === queryId) || null;
+  }, [queries, queryId]);
+
+  const currentQueryLabel = useMemo(() => {
+    const labelFromQuery = currentQuery?.query;
+    if (typeof labelFromQuery === "string" && labelFromQuery.trim()) return labelFromQuery;
+
+    if (typeof queryText === "string" && queryText.trim()) return queryText;
+    const ls = localStorage.getItem("query");
+
+    if (typeof ls === "string" && ls.trim()) return ls;
+
+    return "";
+  }, [currentQuery, queryText]);
 
   // Fetch documents for the current query from all users
   useEffect(() => {
@@ -137,27 +161,27 @@ export default function UserTimeline({ queries, setPageLoading, setShowDetails, 
     return () => clearInterval(interval);
   }, [queryId]);
 
-  const getSearchResult = async (searchTerm) => {
-    localStorage.setItem("searchTerm", searchTerm);
-    localStorage.setItem("query", searchTerm);
-    
-    // Navigate to results page
-    const workspaceId = queries[0]?.workspaceId;
-    const queryId = queries[0]?._id;
-    if (workspaceId && queryId) 
+  const getSearchResult = async ({ searchTerm, nextWorkspaceId, nextQueryId }) => {
+    if (typeof searchTerm === "string") 
     {
-      navigate(`/task/${workspaceId}/${queryId}`);
-    } 
-    else if (workspaceId) 
-    {
-      // If we have workspaceId but no queryId, navigate to workspace
-      navigate(`/workspace/${workspaceId}`);
-    } 
-    else 
-    {
-      // Fallback - this shouldn't happen in normal flow
-      window.location.href = "/results";
+      localStorage.setItem("searchTerm", searchTerm);
+      localStorage.setItem("query", searchTerm);
     }
+
+    // Navigate to results page (always use the intended query/workspace, never queries[0])
+    if (nextWorkspaceId && nextQueryId) 
+    {
+      navigate(`/task/${nextWorkspaceId}/${nextQueryId}`);
+      return;
+    }
+
+    if (nextWorkspaceId) 
+    {
+      navigate(`/workspace/${nextWorkspaceId}`);
+      return;
+    }
+
+    window.location.href = "/results";
   };
 
   const getDetails = (controlNumber, setPageLoading, setShowDetails, setDetails) => {
@@ -193,6 +217,7 @@ export default function UserTimeline({ queries, setPageLoading, setShowDetails, 
   const sortedDates = Object.keys(documentsByDate).sort((a, b) => {
     const dateA = documentsByDate[a][0]?.createdAt;
     const dateB = documentsByDate[b][0]?.createdAt;
+    
     if (!dateA || !dateB) return 0;
       return new Date(dateB) - new Date(dateA);
   });
@@ -266,24 +291,28 @@ export default function UserTimeline({ queries, setPageLoading, setShowDetails, 
       </div>
 
         <div className={styles.magnifyingRow}>
-          {/* Still show query search if available */}
-          {queries.length > 0 && queries.map((query) => {
-            const initialSearch = formatDateTime(query.createdAt);
-            return (
-              <div key={query._id}>
-                <div
-                  className={styles.queryBox}
-                  onClick={() => getSearchResult(query.query)}
-                >
-                  <span className={styles.queryText}>
-                    <SearchIcon fontSize="small" />
-                    <span style={{ marginLeft: "0.5rem" }}>{query.query}</span>
-                  </span>
-                </div>
-                <div className={styles.queryTime}>{initialSearch}</div>
+          {!!currentQueryLabel && (
+            <div key={queryId || currentQueryLabel}>
+              <div
+                className={styles.queryBox}
+                onClick={() =>
+                  getSearchResult({
+                    searchTerm: currentQueryLabel,
+                    nextWorkspaceId: workspaceId || currentQuery?.workspaceId,
+                    nextQueryId: queryId || currentQuery?._id,
+                  })
+                }
+              >
+                <span className={styles.queryText}>
+                  <SearchIcon fontSize="small" />
+                  <span style={{ marginLeft: "0.5rem" }}>{currentQueryLabel}</span>
+                </span>
               </div>
-            );
-          })}
+              {!!currentQuery?.createdAt && (
+                <div className={styles.queryTime}>{formatDateTime(currentQuery.createdAt)}</div>
+              )}
+            </div>
+          )}
         </div>
     </div>
   );

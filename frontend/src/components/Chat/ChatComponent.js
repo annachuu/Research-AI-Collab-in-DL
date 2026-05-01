@@ -81,9 +81,9 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
 
     // Check if user is near the bottom of the chat
     const isNearBottom = () => {
-        if (!messagesBoxRef.current) 
-            return true;
+        if (!messagesBoxRef.current) return true;
         const { scrollTop, scrollHeight, clientHeight } = messagesBoxRef.current;
+        
         // Consider near bottom if within 100px at the bottom
         const threshold = 100;
         return scrollHeight - scrollTop - clientHeight < threshold;
@@ -145,7 +145,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         }
     }, [messages, currentUsername]);
 
-    // Fetch messages for this search topic (workspace + queryText). Same topic = same chat; poll so others see messages.
+    // Fetch messages for this search topic (workspace + queryText). Same topic = same chat; poll so others see messages
     useEffect(() => {
         const normalized = normalizeQueryText(queryText);
         if (!workspaceId || !normalized) 
@@ -243,12 +243,12 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         {
             setIsAIMode(false);
             setSelectedAgentKey('manager');
-            // Only clear selected docs when the user fully empties the message.
+            // Only clear selected docs when the user fully empties the message
             setSelectedDocuments([]);
         }
         else
         {
-            // Keep any dropped documents selected while the user types a regular message.
+            // Keep any dropped documents selected while the user types a regular message
             setIsAIMode(false);
             setSelectedAgentKey('manager');
         }
@@ -421,7 +421,6 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
         const lowerInput = inputText.toLowerCase();
         const isAIMessage =
             // Only treat as AI when the user explicitly invoked it via @-mention in the textbox
-            // (The dropdown should not force AI mode for normal chat messages)
             lowerInput.startsWith('@ai') ||
             lowerInput.startsWith('@reformulator') ||
             lowerInput.startsWith('@gapdetector') ||
@@ -469,6 +468,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                     workspaceHistory,
                     workspaceId,
                     queryId,
+                    queryText,
                     explicitAgentKey,
                     recentMessages: [...messages, userMsg]
                 });
@@ -568,15 +568,13 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                 setIsAILoading(false);
                 setInput("");
                 setIsAIMode(false);
-                
                 setSelectedDocuments([]);       // Clear selected documents after  AI interaction completes
             }
             return;
         }
 
-        // Regular chat message handling — same palette as typing, refs, AI prompt, and History
+        // Regular chat message handling - same palette as typing, refs, AI prompt, and History
         const calculatedUserIndex = getColorIndexForUsername(currentUsername);
-
         const normalizedTopic = normalizeQueryText(queryText);
         const newMsg = {
             workspaceId: workspaceId || '',
@@ -607,7 +605,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
             }, 100);
             setInput("");
             setIsAIMode(false);
-            // Clear after successful send so future messages don't keep referencing old drops.
+            // Clear after successful send so future messages don't keep referencing old drops
             setSelectedDocuments([]);
         }
         catch (error)
@@ -738,7 +736,7 @@ function ChatComponent ({ currentUsername, currentUserIndex = 0, documents = [],
                     <div className={styles.aiThinkingOverlay} aria-live="polite" aria-busy="true">
                         <div className={styles.aiThinkingBlock}>
                             <div className={styles.aiThinkingContent}>
-                                <CircularProgress size={36} thickness={4} className={styles.aiThinkingSpinner} />
+                                {/* <CircularProgress size={36} thickness={4} className={styles.aiThinkingSpinner} /> */}
                                 <span className={styles.aiThinkingText}>AI is thinking...</span>
                             </div>
                             <LinearProgress

@@ -11,6 +11,7 @@ import RenderDocumentThumbnail from "../../components/Document/DocumentThumbnail
 import SERPDocumentComponent from "./SerpDocumentComponent";
 import ChatComponent from "../../components/Chat/ChatComponent";
 import UserTimeline from "../../components/History/timeline";
+import documentService from "../../features/Document/documentService";
 
 import { getSearchResultLists, resetSearchResults, getDocumentThumbnailUrl } from '../../features/contents/contentResultsSlice';
 import { createQuery, getQueryDetails, resetWorkspaceData, getWorkspaceDetails } from "../../features/workspace/workspaceSlice";
@@ -29,10 +30,10 @@ import { getRilDocumentLists, resetRilData, getRilDocumentCount, saveDocumentToR
 
 import styles from "./ContentListings.module.css";
 import SearchComponent from "../../components/Search/Search";
-
 import { isbn_url } from "../../config/env";
 
-function ContentListsComponent() {
+function ContentListsComponent() 
+{
     const dispatch = useDispatch();     
     const navigate = useNavigate(); 
     const scrollToTopRef = useRef();
@@ -50,6 +51,7 @@ function ContentListsComponent() {
     const [capturedDocs, setCapturedDocs] = useState([])
     const [capturedRilDocs, setCapturedRilDocs] = useState([])
     const [workspaceHistory, setWorkspaceHistory] = useState(null)
+    const [timelineDocumentsForQuery, setTimelineDocumentsForQuery] = useState([])
     
     // const [isDocSaved, setIsDocSaved] = useState(false)
     // const [tempDocs, setTempDoc] = useState([])
@@ -115,14 +117,16 @@ function ContentListsComponent() {
      * initialization
      */        
     useEffect(() => {
-        if(isError) {
+        if(isError) 
+        {
             console.log(message)
         }
         
         console.log(QUERY_STRING)
         const QUERY_STRING1 = localStorage.getItem('query')
         // const CURRENT_WORKSPACENAME = localStorage.getItem('wpname')
-        if(QUERY_STRING1 !== null){
+        if(QUERY_STRING1 !== null)
+        {
             const SERP_REQUEST = {
                 "query": QUERY_STRING1,
                 "offset": initialPagination.offset,
@@ -139,7 +143,8 @@ function ContentListsComponent() {
             dispatch(getQueryDetails(query_temp))
             
             // Fetch workspace details for history
-            if (workspaceId) {
+            if (workspaceId) 
+            {
                 dispatch(getWorkspaceDetails({ workspaceId }))
             }
         }                       
@@ -176,22 +181,89 @@ function ContentListsComponent() {
 
     useEffect(() => {
         console.log('isRilArraySuccess_', isRilArraySuccess)
-        if(isRilArraySuccess){
+        if(isRilArraySuccess)
+        {
             console.log('RIL list _' , ril_documents)
             setCapturedRilDocs(ril_documents)
-            if(ril_documents.length !== 0){
+
+            if(ril_documents.length !== 0)
+            {
                 const documentIds = ril_documents.map(doc => doc._id);
                 setTempRils(documentIds);
             }
         }        
     }, [isRilArraySuccess])
+
+    // Fetch "timeline" documents (all users, includes removed) for the current query
+    // used both for the History panel and for AI context (so AI can answer info about saved/deleted docs)
+    useEffect(() => {
+        if (!queryId) 
+        {
+            setTimelineDocumentsForQuery([]);
+            return;
+        }
+
+        let cancelled = false;
+
+        async function fetchTimelineDocs() {
+            try 
+            {
+                const res = await documentService.getDocumentsByQueryId(queryId);
+                const docs = Array.isArray(res) ? res : [];
+                if (!cancelled) setTimelineDocumentsForQuery(docs);
+            } 
+            catch (e) 
+            {
+                console.error("Failed to fetch timeline documents for AI context:", e);
+                if (!cancelled) setTimelineDocumentsForQuery([]);
+            }
+        }
+
+        fetchTimelineDocs();
+        const interval = setInterval(fetchTimelineDocs, 3000);
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
+    }, [queryId])
+
+    // Keep AI/chat context fed even before workspace details finish loading: timeline is authoritative
+    // for "who saved what" on this search topic (see GET /document/query/:queryId)
+    useEffect(() => {
+        if (!queryId) 
+        {
+            return;
+        }
+        setWorkspaceHistory((prev) => {
+            const timeline = {
+                queryId,
+                documents: timelineDocumentsForQuery || []
+            };
+            const name =
+                singleWorkspace?.workspace?.name ||
+                currentWorkspace ||
+                CURRENT_WORKSPACENAME ||
+                "";
+            if (prev) 
+            {
+                return { ...prev, timeline };
+            }
+            return {
+                workspaceName: name,
+                queries: [],
+                timeline
+            };
+        });
+    }, [timelineDocumentsForQuery, queryId, currentWorkspace, CURRENT_WORKSPACENAME, singleWorkspace?.workspace?.name])
     
     // Fetch and set workspace history when workspace details are loaded
     useEffect(() => {
-        if (isWorkpsaceDetailSuccess && singleWorkspace) {
+        if (isWorkpsaceDetailSuccess && singleWorkspace) 
+        {
             console.log('Workspace details loaded:', singleWorkspace);
             // singleWorkspace contains: workspace, queries (with documents), querySize, docSize
-            if (singleWorkspace.queries && Array.isArray(singleWorkspace.queries)) {
+            if (singleWorkspace.queries && Array.isArray(singleWorkspace.queries)) 
+            {
                 // Filter queries to only include those from the current workspace
                 const currentWorkspaceQueries = singleWorkspace.queries.filter(query => {
                     const queryWorkspaceId = query.workspaceId?.toString ? query.workspaceId.toString() : query.workspaceId;
@@ -204,11 +276,17 @@ function ContentListsComponent() {
                     queries: currentWorkspaceQueries.map(query => ({
                         ...query,
                         documents: query.documents || []
-                    }))
+                    })),
+                    // Timeline of all users for the currently viewed query, includes removed docs
+                    // Keep the docs so the AI can build a compact representation
+                    timeline: {
+                        queryId,
+                        documents: timelineDocumentsForQuery || []
+                    }
                 });
             }
         }
-    }, [isWorkpsaceDetailSuccess, singleWorkspace, currentWorkspace, CURRENT_WORKSPACENAME, workspaceId]) 
+    }, [isWorkpsaceDetailSuccess, singleWorkspace, currentWorkspace, CURRENT_WORKSPACENAME, workspaceId, queryId, timelineDocumentsForQuery]) 
     
 
     /**
@@ -218,7 +296,8 @@ function ContentListsComponent() {
     useEffect(() => {
         console.log('isNewSearchKeyeword detected', isNewSearchKeyword)
         console.log(currentWorkspace)
-        if(isNewSearchKeyword !== null){
+        if(isNewSearchKeyword !== null)
+        {
             const newTopic = (isNewSearchKeyword.keyword || '').trim()
             
             // Keep the breadcrumb aligned with the latest search topic
@@ -229,7 +308,7 @@ function ContentListsComponent() {
                 'query': newTopic,
                 'userId': user.data._id,
                 'workspaceId': workspaceId,
-                // Save the search topic for breadcrumb restoration.
+                // Save the search topic for breadcrumb restoration
                 'workspaceName': newTopic,
                 'documents': []
             }
@@ -243,7 +322,8 @@ function ContentListsComponent() {
         console.log('isQueryCreateSuccess_', isQueryCreateSuccess)
         console.log('singleQuery_ updates_' , singleQuery)
         setCapturedRilDocs([])
-        if(isQueryCreateSuccess){
+        if(isQueryCreateSuccess)
+        {
             console.log('* isQueryCreateSuccess_', isQueryCreateSuccess)
             console.log('qureis', quries)
             // setQueryOfCurrentTask(singleQuery)
@@ -252,6 +332,7 @@ function ContentListsComponent() {
         }
 
     }, [isQueryCreateSuccess, singleQuery]) 
+
     /**
      * new keyword detected and create query with new keyword
      * end of keyword and query create function
@@ -263,7 +344,8 @@ function ContentListsComponent() {
      * start of function
      */
     const handleDocDragStart = (event, doc) => {
-        try {
+        try 
+        {
             const recordId = doc?.pnx?.control?.recordid?.[0];
             if (!recordId) return;
 
@@ -290,7 +372,9 @@ function ContentListsComponent() {
             };
 
             event.dataTransfer.setData('application/json', JSON.stringify(payload));
-        } catch (error) {
+        } 
+        catch (error) 
+        {
             console.error("Error preparing document for drag:", error);
         }
     };
@@ -371,43 +455,45 @@ function ContentListsComponent() {
         //     }
         // }    
         
-    if (type !== 'ril') {
-        const recordId = doc.pnx.control.recordid[0];
-        const selectedDocObject = capturedDocs.find(item => item.documentId === recordId);
+        if (type !== 'ril') 
+        {
+            const recordId = doc.pnx.control.recordid[0];
+            const selectedDocObject = capturedDocs.find(item => item.documentId === recordId);
 
-        if (!selectedDocObject) {
-            // FIRST TIME SAVE
-            addOrRemoveDocuments(doc, undefined);
-        } else {
-            // TOGGLE SAVE (soft delete)
-            dispatch(toggleDocumentSave(selectedDocObject._id))
-            .unwrap()
-            .then((updatedDoc) => {
-                // Normalize the updated document
-                const normalizedDoc = {
-                    ...updatedDoc.data,
-                    isRemoved: updatedDoc.data.doc_isRemoved ?? updatedDoc.data.isRemoved ?? false
-                };
-                // update capturedDocs only for the current query
-                setCapturedDocs(prev => prev.map(d => 
-                    d._id === normalizedDoc._id && d.queryId === queryId ? normalizedDoc : d
-                ));
-                
-                // Refetch documents to ensure timeline gets updated
-                const query_temp = {
-                    "workspaceId": workspaceId,
-                    "queryId": queryId
-                };
-                dispatch(getDocumentListsByQueryId(query_temp));
-            })
-            .catch((error) => {
-                console.error("Failed to toggle document save:", error);
-            });
+            if (!selectedDocObject) 
+            {
+                // FIRST TIME SAVE
+                addOrRemoveDocuments(doc, undefined);
+            } 
+            else 
+            {
+                // TOGGLE SAVE (soft delete)
+                dispatch(toggleDocumentSave(selectedDocObject._id))
+                .unwrap()
+                .then((updatedDoc) => {
+                    // Normalize the updated document
+                    const normalizedDoc = {
+                        ...updatedDoc.data,
+                        isRemoved: updatedDoc.data.doc_isRemoved ?? updatedDoc.data.isRemoved ?? false
+                    };
+                    // update capturedDocs only for the current query
+                    setCapturedDocs(prev => prev.map(d => 
+                        d._id === normalizedDoc._id && d.queryId === queryId ? normalizedDoc : d
+                    ));
+                    
+                    // Refetch documents to ensure timeline gets updated
+                    const query_temp = {
+                        "workspaceId": workspaceId,
+                        "queryId": queryId
+                    };
+                    dispatch(getDocumentListsByQueryId(query_temp));
+                })
+                .catch((error) => {
+                    console.error("Failed to toggle document save:", error);
+                });
+            }
+            return;
         }
-        return;
-    }
-
-        
     };
 
     const buildFullDisplayUrl = (doc1) => {
@@ -433,7 +519,8 @@ function ContentListsComponent() {
         console.log(selectedDoc)
         // console.log('temp_', tempDocs)
 
-        if(selectedDoc !== undefined){            
+        if(selectedDoc !== undefined)
+        {            
             const DOC_TEMP_REMOVE ={
                 "documentId": selectedDoc._id,                                
                 "workspaceId": workspaceId,
@@ -442,7 +529,9 @@ function ContentListsComponent() {
     
             console.log('DOC_TEMP_REMOVE ', DOC_TEMP_REMOVE)
             dispatch(removeDocumentFromWorkspace(DOC_TEMP_REMOVE))            
-        }else{
+        }
+        else
+        {
             console.log("**", doc.delivery)
             const DOC_TEMP ={
                 "documentId": doc.pnx.control.recordid[0],
@@ -515,7 +604,8 @@ function ContentListsComponent() {
 
     useEffect(() => { 
         console.log('add ril_', isAddToRilSuccess)       
-        if(isAddToRilSuccess || isRemoveFromRilSuccess){
+        if(isAddToRilSuccess || isRemoveFromRilSuccess)
+        {
             console.log('ril is added_')
             const user_data = {
                 'userId': user.data._id
@@ -570,16 +660,20 @@ function ContentListsComponent() {
 
         console.log(SERP_REQUEST)
 
-        if(skip < 2000){
+        if(skip < 2000)
+        {
             dispatch(getSearchResultLists(SERP_REQUEST))
             // scrollToTopRef.current?.scrollIntoView({
             //     behaviour: 'smooth'
             // })     
             
-            if (scrollToTopRef.current) {
+            if (scrollToTopRef.current) 
+            {
                 scrollToTopRef.current.scrollTo({ top: 0, behavior: 'smooth' });  // Scroll to top of the container
             }
-        }else{
+        }
+        else
+        {
             alert('offset is over the limit the Primo API can handle. The recomended maximim offset is 2000.')
         }
     }        
